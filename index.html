@@ -386,6 +386,22 @@ td{
   font-size:19px;color:var(--green);
 }
 
+
+/* CHECKOUT MODAL */
+.checkout-modal{max-width:650px;border:1px solid #e8d6a6;background:linear-gradient(180deg,#fff 0%,#fffdf7 100%)}
+.checkout-total{background:linear-gradient(120deg,#173f32,#32634a);color:#fff;border-radius:16px;padding:18px;margin:14px 0}
+.checkout-total small{color:#d9e8dc}.checkout-total strong{display:block;font-size:32px;font-weight:600}
+.checkout-lines{display:grid;gap:9px;margin:14px 0}.checkout-line{display:flex;justify-content:space-between;gap:12px;font-size:14px}.checkout-line b{font-weight:500}
+.payment-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.payment-option{border:1.5px solid var(--border);border-radius:13px;padding:13px;text-align:center;background:#fff;color:var(--green);font-weight:500}
+.payment-option.selected{border-color:var(--gold);background:#f8f3e6;box-shadow:0 0 0 2px #c6a45c22}
+.payment-option input{accent-color:var(--green);margin-right:6px}
+.payment-fields{background:#f7f8f3;border-radius:13px;padding:14px;margin-top:10px}
+.change-box{display:flex;justify-content:space-between;align-items:center;background:#eaf3eb;color:#17613d;border-radius:11px;padding:12px 14px;margin-top:10px;font-weight:500}
+.share-table{width:100%;min-width:0;margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow:hidden}.share-table th,.share-table td{padding:10px;font-size:13px}.share-table th{background:#f4f4ed}
+.checkout-actions{display:flex;gap:9px;margin-top:18px}.checkout-actions button{flex:1}
+@media(max-width:520px){.checkout-modal{padding:17px}.checkout-actions{flex-direction:column}.checkout-total strong{font-size:28px}}
+
 /* REPORT */
 
 .report-grid{
@@ -628,6 +644,31 @@ td{
   </div>
 </div>
 
+<!-- CHECKOUT MODAL -->
+<div id="checkoutModal" class="modal-backdrop hidden">
+  <div class="modal checkout-modal">
+    <div class="modal-head">
+      <div><h2 style="margin:0;color:var(--green)">สรุปยอดชำระเงิน</h2><small id="checkoutSubtitle" style="color:var(--muted)"></small></div>
+      <button class="close" onclick="closeCheckout()">×</button>
+    </div>
+    <div id="checkoutDetails"></div>
+    <div class="field"><label>เลือกวิธีชำระเงิน</label></div>
+    <div class="payment-options">
+      <label class="payment-option selected" id="cashOption"><input type="radio" name="paymentMethod" value="เงินสด" checked onchange="selectPaymentMethod()"> 💵 เงินสด</label>
+      <label class="payment-option" id="transferOption"><input type="radio" name="paymentMethod" value="โอนเงิน" onchange="selectPaymentMethod()"> 📱 โอนเงิน</label>
+    </div>
+    <div id="cashFields" class="payment-fields">
+      <div class="field"><label for="cashReceived">จำนวนเงินสดที่รับจากลูกค้า (บาท)</label><input id="cashReceived" type="number" min="0" step="0.01" placeholder="กรอกจำนวนเงินที่รับ" oninput="updateCashChange()"></div>
+      <div class="change-box"><span>เงินทอน</span><strong id="cashChange">0.00 ฿</strong></div>
+      <small id="cashHint" style="color:var(--muted)">กรอกจำนวนเงินที่รับ ระบบจะคำนวณเงินทอนให้อัตโนมัติ</small>
+    </div>
+    <div class="checkout-actions">
+      <button class="btn btn-light" onclick="closeCheckout()">กลับ</button>
+      <button id="confirmCheckoutBtn" class="btn btn-primary" onclick="confirmCheckout()">ยืนยันรับชำระและจบงาน</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script>
@@ -646,7 +687,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyYu1ndQ7ruRw980iyVuR5m
 let state = {
   beds: [],
   employees: [],
-  services: []
+  services: [],
+  activeBookings: []
 };
 
 let currentPage = 'dashboard';
@@ -755,7 +797,8 @@ async function refresh() {
   state = {
     beds: result.beds || [],
     employees: result.employees || [],
-    services: result.services || []
+    services: result.services || [],
+    activeBookings: result.activeBookings || []
   };
 }
 
@@ -1089,20 +1132,110 @@ async function startBooking() {
  * FINISH BOOKING
  ************************************************/
 
-async function finishBookingForBed(bed) {
-  const bookings = await api('init');
+let checkoutBooking = null;
+let checkoutBed = null;
 
-  if (!bookings.ok) {
-    alert(bookings.error || 'โหลดข้อมูลไม่ได้');
+async function finishBookingForBed(bed) {
+  try {
+    // โหลดรายการงานที่กำลังนวดจาก API โดยตรง
+    const result = await api('getActiveBookings');
+    if (!result.ok) throw new Error(result.error || 'โหลดรายการงานไม่สำเร็จ');
+    const booking = (result.bookings || []).find(x => String(x.bedId) === String(bed.id));
+    if (!booking) throw new Error('ไม่พบรายการนวดของเตียงนี้ กรุณารีเฟรชข้อมูล');
+
+    checkoutBooking = booking;
+    checkoutBed = bed;
+    const gross = Number(booking.price || 0);
+    const discount = Number(booking.discount || 0);
+    const net = Number(booking.net || (gross - discount));
+    const shop = Math.round(net * Number(booking.shareShopPct || 0)) / 100;
+    const owner = Math.round(net * Number(booking.shareOwnerPct || 0)) / 100;
+    const staff = Math.round((net - shop - owner) * 100) / 100;
+
+    document.getElementById('checkoutSubtitle').textContent = `${bed.name} · ${booking.customerName || 'ลูกค้าทั่วไป'}`;
+    document.getElementById('checkoutDetails').innerHTML = `
+      <div class="checkout-lines">
+        <div class="checkout-line"><span>บริการ</span><b>${escapeHTML(booking.serviceName || '-')} · ${Number(booking.minutes || 0)} นาที</b></div>
+        <div class="checkout-line"><span>พนักงานนวด</span><b>${escapeHTML(booking.employeeName || (state.employees.find(x => String(x.id) === String(booking.employeeId)) || {}).name || '-')}</b></div>
+        <div class="checkout-line"><span>ราคาบริการ</span><b>${money(gross)}</b></div>
+        <div class="checkout-line"><span>ส่วนลด</span><b>− ${money(discount)}</b></div>
+      </div>
+      <div class="checkout-total"><small>ยอดสุทธิที่ต้องชำระ</small><strong>${money(net)}</strong></div>
+      <div style="font-weight:500;color:var(--green);margin:12px 0 5px">รายละเอียดการแบ่งค่ามือ</div>
+      <table class="share-table"><thead><tr><th>ผู้รับ</th><th>สัดส่วน</th><th style="text-align:right">จำนวนเงิน</th></tr></thead><tbody>
+        <tr><td>ร้าน</td><td>${Number(booking.shareShopPct || 0)}%</td><td style="text-align:right">${money(shop)}</td></tr>
+        <tr><td>เจ้าของ</td><td>${Number(booking.shareOwnerPct || 0)}%</td><td style="text-align:right">${money(owner)}</td></tr>
+        <tr><td>พนักงานนวด</td><td>${Number(booking.shareStaffPct || 0)}%</td><td style="text-align:right">${money(staff)}</td></tr>
+      </tbody></table>`;
+
+    document.getElementById('cashReceived').value = '';
+    document.querySelector('input[name="paymentMethod"][value="เงินสด"]').checked = true;
+    selectPaymentMethod();
+    updateCashChange();
+    document.getElementById('checkoutModal').classList.remove('hidden');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function selectPaymentMethod() {
+  const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+  document.getElementById('cashFields').classList.toggle('hidden', method !== 'เงินสด');
+  document.getElementById('cashOption').classList.toggle('selected', method === 'เงินสด');
+  document.getElementById('transferOption').classList.toggle('selected', method === 'โอนเงิน');
+  updateCashChange();
+}
+
+function updateCashChange() {
+  if (!checkoutBooking) return;
+  const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+  const net = Number(checkoutBooking.net || 0);
+  const received = Number(document.getElementById('cashReceived').value || 0);
+  const change = Math.max(0, received - net);
+  document.getElementById('cashChange').textContent = money(change);
+  const hint = document.getElementById('cashHint');
+  if (method === 'เงินสด' && received < net) {
+    hint.textContent = received > 0 ? `ยังขาดอีก ${money(net - received)}` : 'กรอกจำนวนเงินที่รับ ระบบจะคำนวณเงินทอนให้อัตโนมัติ';
+    hint.style.color = 'var(--red)';
+  } else {
+    hint.textContent = 'จำนวนเงินครบถ้วน';
+    hint.style.color = 'var(--green)';
+  }
+}
+
+function closeCheckout() {
+  document.getElementById('checkoutModal').classList.add('hidden');
+  checkoutBooking = null;
+  checkoutBed = null;
+}
+
+async function confirmCheckout() {
+  if (!checkoutBooking) return;
+  const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+  const net = Number(checkoutBooking.net || 0);
+  const received = method === 'เงินสด' ? Number(document.getElementById('cashReceived').value || 0) : net;
+  if (method === 'เงินสด' && received < net) {
+    alert('จำนวนเงินสดที่รับยังไม่ครบยอดชำระ');
     return;
   }
-
-  // API init ไม่ได้ส่ง bookings กลับมา
-  // ต้องค้นหารายการจากชีต Bookings ผ่าน API เพิ่มเติม
-  alert(
-    'ยังไม่สามารถค้นหารายการจองที่กำลังนวดจากหน้าเว็บได้\n' +
-    'ต้องเพิ่ม API สำหรับรายการงานที่กำลังดำเนินการก่อนเปิดใช้การคิดเงิน'
-  );
+  const button = document.getElementById('confirmCheckoutBtn');
+  button.disabled = true; button.textContent = 'กำลังบันทึก...';
+  try {
+    const result = await api('finishBooking', {
+      bookingId: checkoutBooking.id,
+      paymentMethod: method,
+      cashReceived: received
+    });
+    if (!result.ok) throw new Error(result.error || 'บันทึกการชำระเงินไม่สำเร็จ');
+    closeCheckout();
+    await refresh();
+    showPage(currentPage);
+    notify('รับชำระเงินและจบงานเรียบร้อยแล้ว');
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    button.disabled = false; button.textContent = 'ยืนยันรับชำระและจบงาน';
+  }
 }
 
 /************************************************
