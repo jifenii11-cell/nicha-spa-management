@@ -1597,14 +1597,6 @@ function renderDashboard() {
       </button>
     </div>
 
-    <div class="panel" style="margin:20px 0;padding:20px">
-      <div class="section-head" style="margin-bottom:14px">
-        <div><h2>สรุปยอดและค่ามือวันนี้</h2><p>จัดการปิดยอดและจ่ายค่ามือประจำวัน</p></div>
-        <button class="btn btn-light" onclick="loadDashboardFinance()">↻ รีเฟรช</button>
-      </div>
-      <div id="dashboardFinance"><div class="empty">กำลังโหลดข้อมูลยอดวันนี้...</div></div>
-    </div>
-
     <div class="section-head">
       <div>
         <h2>สถานะเตียงและห้องบริการ</h2>
@@ -1617,7 +1609,6 @@ function renderDashboard() {
   `;
 
   updateBedTimers();
-  loadDashboardFinance();
 }
 
 /* DAILY CLOSING + STAFF PAYOUTS */
@@ -1629,7 +1620,7 @@ function localDateKey(date=new Date()) {
 }
 
 async function loadDashboardFinance() {
-  const host=document.getElementById('dashboardFinance');
+  const host=document.getElementById('reportFinance');
   if(!host) return;
   host.innerHTML='<div class="empty">กำลังโหลดข้อมูล...</div>';
   try {
@@ -2639,10 +2630,18 @@ async function renderReport() {
         <div class="report-card"><span>รับเงินสด</span><strong>${money(r.cash)}</strong></div>
         <div class="report-card"><span>รับเงินโอน</span><strong>${money(r.transfer)}</strong></div>
       </div>
+      <div class="panel" style="margin-top:18px;padding:20px">
+        <div class="section-head" style="margin-bottom:14px">
+          <div><h2>สรุปยอดและค่ามือวันนี้</h2><p>จัดการปิดยอด จ่ายค่ามือ และตรวจสอบประวัติย้อนหลัง</p></div>
+          <button class="btn btn-light" onclick="loadDashboardFinance()">↻ รีเฟรช</button>
+        </div>
+        <div id="reportFinance"><div class="empty">กำลังโหลดข้อมูลยอดวันนี้...</div></div>
+      </div>
       <div class="panel" style="margin-top:18px">
         <div class="section-head" style="margin-bottom:12px"><div><h3>รายละเอียดลูกค้าที่มาใช้บริการ</h3><p>แสดงเฉพาะรายการที่ชำระเงินแล้วในช่วงเวลาที่เลือก</p></div><b>${Number(r.count||0)} รายการ</b></div>
         <div class="table-wrap"><table class="data-table report-detail-table"><thead><tr><th>#</th><th>วัน / เวลา</th><th>ลูกค้า</th><th>บริการ</th><th>พนักงาน</th><th>ราคา</th><th>ส่วนลด</th><th>สุทธิ</th><th>ชำระโดย</th></tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty-cell">ไม่มีรายการใช้บริการในช่วงเวลานี้</td></tr>'}</tbody></table></div>
       </div>`;
+    if(requestId===reportRequestId && currentPage==='report') loadDashboardFinance();
   } catch(err) {
     if(requestId!==reportRequestId || currentPage!=='report') return;
     content.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p></div>`;
