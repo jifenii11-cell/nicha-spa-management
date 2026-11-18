@@ -1829,19 +1829,17 @@ async function prepareBooking() {
   }
 }
 
-async function openPreparedBooking(bed) {
+function openPreparedBooking(bed) {
   try {
-    const result=await api('getActiveBookings');
-
-    if(!result.ok) throw new Error(result.error||'โหลดรายการไม่สำเร็จ');
-
-    selectedPreparedBooking=(result.bookings||[]).find(x=>
+    // ใช้ข้อมูลที่โหลดไว้ใน state แล้ว ไม่ต้องรอเรียก Google Apps Script ซ้ำ
+    selectedPreparedBooking=(state.activeBookings||[]).find(x=>
       String(x.bedId)===String(bed.id) &&
       x.status==='เตรียมไว้'
     );
 
     if(!selectedPreparedBooking) {
-      throw new Error('ไม่พบรายการเตรียมไว้ กรุณารีเฟรชข้อมูล');
+      notify('ไม่พบรายการเตรียมไว้ กรุณารีเฟรชข้อมูล','error');
+      return;
     }
 
     const b=selectedPreparedBooking;
@@ -1930,13 +1928,10 @@ async function startBooking() {
 
 /* CHECKOUT */
 
-async function finishBookingForBed(bed) {
+function finishBookingForBed(bed) {
   try {
-    const result=await api('getActiveBookings');
-
-    if(!result.ok) throw new Error(result.error||'โหลดรายการงานไม่สำเร็จ');
-
-    const booking=(result.bookings||[]).find(x=>
+    // ใช้รายการนวดที่อยู่ใน state จากการโหลดข้อมูลล่าสุด เพื่อเปิด Checkout ทันที
+    const booking=(state.activeBookings||[]).find(x=>
       String(x.bedId)===String(bed.id) &&
       x.status==='กำลังนวด'
     );
