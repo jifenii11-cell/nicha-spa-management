@@ -519,6 +519,19 @@ td{
   color: #15803d !important;
 }
 
+
+.bed-card.bed-card-prepared {
+  background: #fff4c2 !important;
+  color: #6b4e00 !important;
+  border: 1px solid #e8c547 !important;
+}
+.bed-card.bed-card-prepared .bed-name,
+.bed-card.bed-card-prepared .bed-area,
+.bed-card.bed-card-prepared .bed-action { color: #765900 !important; }
+.bed-card.bed-card-prepared .status-prepared { background:#f4d86b; color:#654b00; }
+.bed-card.bed-card-busy { background:#16a34a !important; }
+.status-prepared { background:#f4d86b; color:#654b00; }
+
 </style>
 </head>
 
@@ -645,8 +658,25 @@ td{
     </div>
 
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="startBooking()">ยืนยันเริ่มงานนวด</button>
-      <button class="btn btn-light" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-gold" onclick="prepareBooking()">เตรียมไว้</button>
+      <button class="btn btn-primary" onclick="startBooking()">เริ่มนวดทันที</button>
+      <button class="btn btn-light" onclick="closeModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREPARED BOOKING ACTION MODAL -->
+<div id="preparedModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>รายการเตรียมรับลูกค้า</h2>
+      <button class="close" onclick="closePreparedModal()">×</button>
+    </div>
+    <div id="preparedDetails" class="panel" style="margin:12px 0"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="startPreparedBooking()">เริ่มนวด</button>
+      <button class="btn btn-danger" onclick="cancelPreparedBooking()">ยกเลิกรายการ</button>
+      <button class="btn btn-light" onclick="closePreparedModal()">ปิด</button>
     </div>
   </div>
 </div>
@@ -697,6 +727,8 @@ let state = {
   services: [],
   activeBookings: []
 };
+
+let selectedPreparedBooking = null;
 
 let currentPage = 'dashboard';
 let toastTimer = null;
@@ -970,21 +1002,24 @@ function bedCards(beds) {
   return `
     <div class="bed-grid">
       ${beds.map(bed => {
-        const busy = bed.status !== 'ว่าง';
+        const prepared = bed.status === 'เตรียมไว้';
+        const busy = bed.status === 'กำลังนวด';
+        const cardClass = prepared ? 'bed-card-prepared' : (busy ? 'bed-card-busy' : 'bed-card-free');
+        const statusClass = prepared ? 'status-prepared' : (busy ? 'status-busy' : 'status-free');
 
         return `
-          <div class="bed-card ${busy ? 'bed-card-busy' : 'bed-card-free'}" onclick="clickBed('${escapeHTML(bed.id)}')">
+          <div class="bed-card ${cardClass}" onclick="clickBed('${escapeHTML(bed.id)}')">
             <div class="bed-top">
               <div>
                 <div class="bed-name">${escapeHTML(bed.name)}</div>
                 <div class="bed-area">${escapeHTML(bed.area)}</div>
               </div>
-              <span class="status ${busy ? 'status-busy' : 'status-free'}">
+              <span class="status ${statusClass}">
                 ${escapeHTML(bed.status || 'ว่าง')}
               </span>
             </div>
             <div class="bed-action">
-              ${busy ? 'เปิดเพื่อดูสถานะและปิดงาน' : '+ แตะเพื่อรับลูกค้า'}
+              ${prepared ? 'เปิดรายการเพื่อเริ่มนวดหรือยกเลิก' : (busy ? 'เปิดเพื่อคิดเงินและจบงาน' : '+ แตะเพื่อรับลูกค้า')}
             </div>
           </div>
         `;
@@ -1043,12 +1078,14 @@ function clickBed(id) {
 
   if (!bed) return;
 
-  if (bed.status !== 'ว่าง') {
-    // เตียงที่กำลังให้บริการ: เปิดหน้าคิดเงินทันที โดยไม่แสดง confirm popup
+  if (bed.status === 'เตรียมไว้') {
+    openPreparedBooking(bed);
+    return;
+  }
+  if (bed.status === 'กำลังนวด') {
     finishBookingForBed(bed);
     return;
   }
-
   openBooking(bed);
 }
 
@@ -1105,11 +1142,11 @@ function closeModal() {
 }
 
 /************************************************
- * START BOOKING
+ * PREPARE BOOKING
  ************************************************/
 
-async function startBooking() {
-  const booking = {
+function collectBookingForm() {
+  return {
     bedId: document.getElementById('bookingBedId').value,
     customerType: document.getElementById('customerType').value,
     customerName: document.getElementById('customerName').value,
@@ -1118,6 +1155,67 @@ async function startBooking() {
     price: Number(document.getElementById('bookingPrice').value),
     discount: Number(document.getElementById('bookingDiscount').value || 0)
   };
+}
+
+async function prepareBooking() {
+  try {
+    const result = await api('prepareBooking', { booking: collectBookingForm() });
+    if (!result.ok) throw new Error(result.error || 'เตรียมรายการไม่สำเร็จ');
+    closeModal();
+    await refresh();
+    showPage(currentPage);
+    notify('บันทึกรายการเตรียมรับลูกค้าแล้ว');
+  } catch (err) { notify(err.message, 'error'); }
+}
+
+async function openPreparedBooking(bed) {
+  try {
+    const result = await api('getActiveBookings');
+    if (!result.ok) throw new Error(result.error || 'โหลดรายการไม่สำเร็จ');
+    selectedPreparedBooking = (result.bookings || []).find(x => String(x.bedId) === String(bed.id) && x.status === 'เตรียมไว้');
+    if (!selectedPreparedBooking) throw new Error('ไม่พบรายการเตรียมไว้ กรุณารีเฟรชข้อมูล');
+    const b = selectedPreparedBooking;
+    const employee = state.employees.find(x => String(x.id) === String(b.employeeId));
+    document.getElementById('preparedDetails').innerHTML = `
+      <p><b>${escapeHTML(b.customerName || 'ลูกค้าทั่วไป')}</b> · ${escapeHTML(b.customerType || '')}</p>
+      <p>บริการ: ${escapeHTML(b.serviceName || '-')} · ${Number(b.minutes || 0)} นาที</p>
+      <p>หมอนวด: ${escapeHTML(b.employeeName || (employee || {}).name || '-')}</p>
+      <p>ราคา: ${money(b.price)} · ส่วนลด: ${money(b.discount)} · สุทธิ: ${money(b.net)}</p>`;
+    document.getElementById('preparedModal').classList.remove('hidden');
+  } catch (err) { notify(err.message, 'error'); }
+}
+
+function closePreparedModal() {
+  document.getElementById('preparedModal').classList.add('hidden');
+  selectedPreparedBooking = null;
+}
+
+async function startPreparedBooking() {
+  if (!selectedPreparedBooking) return;
+  try {
+    const result = await api('startPreparedBooking', { bookingId: selectedPreparedBooking.id });
+    if (!result.ok) throw new Error(result.error || 'เริ่มนวดไม่สำเร็จ');
+    closePreparedModal(); await refresh(); showPage(currentPage);
+    notify('เริ่มนวดเรียบร้อยแล้ว');
+  } catch (err) { notify(err.message, 'error'); }
+}
+
+async function cancelPreparedBooking() {
+  if (!selectedPreparedBooking) return;
+  try {
+    const result = await api('cancelPreparedBooking', { bookingId: selectedPreparedBooking.id });
+    if (!result.ok) throw new Error(result.error || 'ยกเลิกรายการไม่สำเร็จ');
+    closePreparedModal(); await refresh(); showPage(currentPage);
+    notify('ยกเลิกรายการเตรียมไว้แล้ว');
+  } catch (err) { notify(err.message, 'error'); }
+}
+
+/************************************************
+ * START BOOKING
+ ************************************************/
+
+async function startBooking() {
+  const booking = collectBookingForm();
 
   try {
     const result = await api('startBooking', { booking });
