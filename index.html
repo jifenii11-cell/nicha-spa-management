@@ -514,6 +514,17 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .report-card { padding:20px;border-radius:15px;background:#f5f6ef; }
 .report-card span { font-size:12px;color:var(--muted); }
 .report-card strong { display:block;margin-top:7px;color:var(--green);font-size:24px; }
+.report-filter { display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin-bottom:16px; }
+.report-filter label { display:flex;flex-direction:column;gap:6px;min-width:190px;font-size:13px;color:var(--muted); }
+.report-filter select,.report-filter input { min-height:42px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:white;color:var(--text);font:inherit; }
+.report-period-label { padding:10px 0;color:var(--muted);font-size:13px; }
+.muted-small { color:var(--muted);font-size:11px;margin-top:3px; }
+.payment-tag { display:inline-block;padding:4px 9px;border-radius:20px;font-size:12px;white-space:nowrap; }
+.payment-tag.cash { background:#e8f2e9;color:#27623b; }
+.payment-tag.transfer { background:#e8effa;color:#315b91; }
+.report-detail-table { min-width:900px; }
+.empty-cell { text-align:center;padding:28px;color:var(--muted); }
+
 
 .toast {
   position:fixed;
@@ -2433,37 +2444,48 @@ let reportRequestId=0;
 async function renderReport() {
   const content=document.getElementById('pageContent');
   const requestId=++reportRequestId;
-
+  const period=document.getElementById('reportPeriod')?.value||'day';
+  const dateKey=document.getElementById('reportDate')?.value||new Date().toLocaleDateString('en-CA');
   content.innerHTML='<div class="panel empty">กำลังโหลดรายงาน...</div>';
-
   try {
-    const r=await api('report');
-
-    // ป้องกันผลตอบกลับเก่ามาทับหน้าที่ผู้ใช้เปลี่ยนไปแล้ว
+    const r=await api('report',{period,dateKey});
     if(requestId!==reportRequestId || currentPage!=='report') return;
     if(!r.ok) throw new Error(r.error||'โหลดรายงานไม่สำเร็จ');
-
+    const dateValue=escapeHTML(dateKey);
+    const periodOptions=`<option value="day" ${period==='day'?'selected':''}>รายวัน</option><option value="month" ${period==='month'?'selected':''}>รายเดือน</option><option value="year" ${period==='year'?'selected':''}>รายปี</option>`;
+    const rows=(r.details||[]).map((x,i)=>{
+      const dt=x.paidAt?new Date(x.paidAt):null;
+      const when=dt&&!isNaN(dt.getTime())?dt.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}):'-';
+      return `<tr>
+        <td>${i+1}</td><td>${escapeHTML(when)}</td>
+        <td><b>${escapeHTML(x.customerName)}</b><div class="muted-small">${escapeHTML(x.customerType)}</div></td>
+        <td>${escapeHTML(x.serviceName)}<div class="muted-small">${Number(x.minutes||0)} นาที</div></td>
+        <td>${escapeHTML(x.employeeName||'-')}</td>
+        <td>${money(x.price)}</td><td>${money(x.discount)}</td><td><b>${money(x.net)}</b></td>
+        <td><span class="payment-tag ${x.paymentMethod==='โอนเงิน'?'transfer':'cash'}">${escapeHTML(x.paymentMethod)}</span>${x.paymentMethod==='เงินสด'&&Number(x.changeAmount)>0?`<div class="muted-small">รับ ${money(x.cashReceived)} / ทอน ${money(x.changeAmount)}</div>`:''}</td>
+      </tr>`;
+    }).join('');
     content.innerHTML=`
-      <div class="section-head">
-        <div><h2>รายงานรายได้ประจำวัน</h2><p>สรุปยอดรับชำระของวันนี้</p></div>
-        <button class="btn btn-light" onclick="renderReport()">↻ รีเฟรช</button>
+      <div class="section-head"><div><h2>รายงานการใช้บริการและรายได้</h2><p>ดูประวัติลูกค้าและยอดชำระ แยกตามช่วงเวลา</p></div><button class="btn btn-light" onclick="renderReport()">↻ รีเฟรช</button></div>
+      <div class="panel report-filter">
+        <label>รูปแบบรายงาน<select id="reportPeriod" onchange="renderReport()">${periodOptions}</select></label>
+        <label>เลือกวันที่อ้างอิง<input id="reportDate" type="date" value="${dateValue}" onchange="renderReport()"></label>
+        <div class="report-period-label">ช่วงรายงาน: <b>${escapeHTML(r.label||'')}</b></div>
       </div>
-
       <div class="report-grid">
         <div class="report-card"><span>ยอดรับชำระสุทธิ</span><strong>${money(r.total)}</strong></div>
         <div class="report-card"><span>ยอดก่อนหักส่วนลด</span><strong>${money(r.gross)}</strong></div>
         <div class="report-card"><span>ส่วนลดรวม</span><strong>${money(r.discount)}</strong></div>
         <div class="report-card"><span>รายได้ร้าน</span><strong>${money(r.shop)}</strong></div>
-        
         <div class="report-card"><span>ค่ามือพนักงาน</span><strong>${money(r.staff)}</strong></div>
+        <div class="report-card"><span>จำนวนรายการ</span><strong>${Number(r.count||0)} รายการ</strong></div>
+        <div class="report-card"><span>รับเงินสด</span><strong>${money(r.cash)}</strong></div>
+        <div class="report-card"><span>รับเงินโอน</span><strong>${money(r.transfer)}</strong></div>
       </div>
-
       <div class="panel" style="margin-top:18px">
-        <div style="color:var(--muted);font-size:13px">จำนวนรายการที่ชำระแล้ววันนี้</div>
-        <div style="font-size:30px;color:var(--green);font-weight:500">${Number(r.count||0)} รายการ</div>
-      </div>
-    `;
-
+        <div class="section-head" style="margin-bottom:12px"><div><h3>รายละเอียดลูกค้าที่มาใช้บริการ</h3><p>แสดงเฉพาะรายการที่ชำระเงินแล้วในช่วงเวลาที่เลือก</p></div><b>${Number(r.count||0)} รายการ</b></div>
+        <div class="table-wrap"><table class="data-table report-detail-table"><thead><tr><th>#</th><th>วัน / เวลา</th><th>ลูกค้า</th><th>บริการ</th><th>พนักงาน</th><th>ราคา</th><th>ส่วนลด</th><th>สุทธิ</th><th>ชำระโดย</th></tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty-cell">ไม่มีรายการใช้บริการในช่วงเวลานี้</td></tr>'}</tbody></table></div>
+      </div>`;
   } catch(err) {
     if(requestId!==reportRequestId || currentPage!=='report') return;
     content.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p></div>`;
