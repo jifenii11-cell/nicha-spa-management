@@ -1394,18 +1394,36 @@ async function logout() {
   document.getElementById('pin').value='';
 }
 
-async function refresh() {
-  const result=await api('init');
+// รวมคำขอ init ที่เกิดพร้อมกันให้เหลือ request เดียว และเก็บเวลาอัปเดตล่าสุด
+let initRefreshPromise=null;
+let lastRefreshAt=0;
+const REFRESH_FRESH_MS=8000;
 
-  if(!result.ok) throw new Error(result.error||'โหลดข้อมูลไม่สำเร็จ');
+async function refresh(force=false) {
+  const now=Date.now();
+  if(!force && initRefreshPromise) return initRefreshPromise;
+  if(!force && lastRefreshAt && now-lastRefreshAt<350) return state;
 
-  state={
-    beds:result.beds||[],
-    employees:result.employees||[],
-    services:result.services||[],
-    servicePayouts:result.servicePayouts||{},
-    activeBookings:result.activeBookings||[]
-  };
+  if(initRefreshPromise) return initRefreshPromise;
+
+  initRefreshPromise=(async()=>{
+    const result=await api('init');
+    if(!result.ok) throw new Error(result.error||'โหลดข้อมูลไม่สำเร็จ');
+
+    state={
+      beds:result.beds||[],
+      employees:result.employees||[],
+      services:result.services||[],
+      servicePayouts:result.servicePayouts||{},
+      activeBookings:result.activeBookings||[],
+      members:state.members||[]
+    };
+    lastRefreshAt=Date.now();
+    return state;
+  })();
+
+  try { return await initRefreshPromise; }
+  finally { initRefreshPromise=null; }
 }
 
 // รีเฟรชข้อมูลหลังบันทึกแบบเบื้องหลัง เพื่อไม่ให้หน้าจอค้างรอโหลด
@@ -1420,7 +1438,7 @@ function refreshAfterAction() {
     do {
       refreshRequested=false;
       try {
-        await refresh();
+        await refresh(true);
         // อัปเดตสถานะใน Popup พนักงาน หากเปิดค้างอยู่
         if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) {
           renderDashboardStaffPicker();
@@ -2132,22 +2150,18 @@ function renderEmployeePickerList(containerId, selectable) {
 function openEmployeePicker() {
   renderEmployeePickerList('employeePickerList',true);
   document.getElementById('employeePickerModal').classList.remove('hidden');
-  // โหลดสถานะล่าสุดจากระบบแบบเบื้องหลัง โดยไม่ทำให้ Popup รอเปิด
-  refresh().then(()=>{
-    if(!document.getElementById('employeePickerModal').classList.contains('hidden')) {
-      renderEmployeePickerList('employeePickerList',true);
-    }
+  // ใช้ข้อมูลในหน่วยความจำเปิด Popup ทันที; โหลดใหม่เฉพาะเมื่อข้อมูลเก่าเกิน 8 วินาที
+  if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
+    if(!document.getElementById('employeePickerModal').classList.contains('hidden')) renderEmployeePickerList('employeePickerList',true);
   }).catch(err=>console.warn('Refresh employee status:',err));
 }
 
 function openDashboardStaffPicker() {
   renderDashboardStaffPicker();
   document.getElementById('dashboardStaffPickerModal').classList.remove('hidden');
-  // ดึงสถานะงานนวดล่าสุดทุกครั้งที่เปิด Popup
-  refresh().then(()=>{
-    if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) {
-      renderDashboardStaffPicker();
-    }
+  // ใช้ข้อมูลล่าสุดที่มีอยู่ก่อน และโหลดใหม่เฉพาะเมื่อ cache เกิน 8 วินาที
+  if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
+    if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) renderDashboardStaffPicker();
   }).catch(err=>console.warn('Refresh dashboard staff status:',err));
 }
 
@@ -2502,8 +2516,8 @@ async function addEmployee(){
     const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
     notify('เพิ่มพนักงานเรียบร้อยแล้ว');
-    await refresh();
-    showPage('staff');
+    lastRefreshAt=0;
+    refreshAfterAction();
   }catch(err){notify(err.message,'error');}
 }
 
@@ -2514,8 +2528,8 @@ async function saveSharedPayouts(){
     const result=await api('saveServicePayouts',{servicePayouts:sharedPayoutDraft});
     if(!result.ok) throw new Error(result.error||'บันทึกค่ามือไม่สำเร็จ');
     notify('บันทึกค่ามือกลางเรียบร้อยแล้ว');
-    await refresh();
-    showPage('staff');
+    lastRefreshAt=0;
+    refreshAfterAction();
   }catch(err){notify(err.message,'error');}
 }
 
@@ -2578,16 +2592,37 @@ function renderServices() {
 }
 
 async function toggleServiceActive(serviceId, enabled, control) {
-  if(control) control.disabled=true;
+  const service=(state.services||[]).find(x=>String(x.id)===String(serviceId));
+  if(!service || (control && control.dataset.saving==='1')) return;
+  const previous=active(service.active);
+  const row=control?.closest('tr');
+  const statusLabel=row?.querySelector('.service-status');
+
+  // Optimistic UI: เปลี่ยนหน้าจอทันที แล้วค่อยยืนยันกับเซิร์ฟเวอร์
+  service.active=enabled;
+  if(control) { control.disabled=true; control.dataset.saving='1'; }
+  if(statusLabel) {
+    statusLabel.textContent=enabled?'เปิดใช้งาน':'ปิดใช้งาน';
+    statusLabel.classList.toggle('on',enabled);
+    statusLabel.classList.toggle('off',!enabled);
+  }
   try {
     const result=await api('setServiceActive',{serviceId,active:enabled});
     if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะบริการไม่สำเร็จ');
-    await refresh();
-    renderServices();
+    lastRefreshAt=0;
     notify(enabled?'เปิดใช้งานบริการแล้ว':'ปิดใช้งานบริการแล้ว');
+    refreshAfterAction();
   } catch(err) {
-    if(control) { control.checked=!enabled; control.disabled=false; }
+    service.active=previous;
+    if(control) control.checked=previous;
+    if(statusLabel) {
+      statusLabel.textContent=previous?'เปิดใช้งาน':'ปิดใช้งาน';
+      statusLabel.classList.toggle('on',previous);
+      statusLabel.classList.toggle('off',!previous);
+    }
     notify(err.message,'error');
+  } finally {
+    if(control) { control.disabled=false; delete control.dataset.saving; }
   }
 }
 
