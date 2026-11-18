@@ -1266,6 +1266,7 @@ let state={
   beds:[],
   employees:[],
   services:[],
+  servicePayouts:{},
   activeBookings:[]
 };
 
@@ -1347,6 +1348,7 @@ async function refresh() {
     beds:result.beds||[],
     employees:result.employees||[],
     services:result.services||[],
+    servicePayouts:result.servicePayouts||{},
     activeBookings:result.activeBookings||[]
   };
 }
@@ -2194,7 +2196,7 @@ function finishBookingForBed(bed) {
         </thead>
         <tbody>
           <tr><td>ร้าน</td><td>ยอดคงเหลือ</td><td style="text-align:right">${money(shop)}</td></tr>
-          <tr><td>พนักงานนวด</td><td>${booking.payoutMode==='percent'?Number(booking.payoutValue||0)+'%':'บาท/ครั้ง'}</td><td style="text-align:right">${money(staff)}</td></tr>
+          <tr><td>พนักงานนวด</td><td>ค่ามือเท่ากันทุกคน</td><td style="text-align:right">${money(staff)}</td></tr>
         </tbody>
       </table>
     `;
@@ -2295,169 +2297,72 @@ async function confirmCheckout() {
   }
 }
 
-/* STAFF - SERVICE-SPECIFIC PAYOUTS */
-let editingEmployeeId='';
-let employeePayoutDraft=[];
-
-function getEmployeePayoutConfig(employee){
-  if(!employee) return {};
-  let parsed={};
-  if(employee.servicePayouts && typeof employee.servicePayouts==='object') parsed=employee.servicePayouts;
-  else if(employee.servicePayouts){
-    try{parsed=JSON.parse(employee.servicePayouts)||{};}catch(err){parsed={};}
-  }
-  if(!Object.keys(parsed).length){
-    const legacyPercent=Number(employee.shareStaff||0);
-    (state.services||[]).filter(x=>active(x.active)).forEach(service=>{parsed[String(service.id)]={mode:'percent',value:legacyPercent};});
-  }
-  return parsed;
-}
+/* STAFF - SHARED PAYOUT PER SERVICE */
+let sharedPayoutDraft={};
 
 function renderPayoutRows(){
   const services=(state.services||[]).filter(x=>active(x.active));
   const container=document.getElementById('staffPayoutRows');
   if(!container) return;
-  if(!services.length){
-    container.innerHTML='<div class="panel empty">ไม่พบรายการบริการที่เปิดใช้งาน</div>';
-    return;
-  }
-  // Keep the draft aligned with the current service list, including newly added services.
-  employeePayoutDraft=services.map(service=>{
-    const found=employeePayoutDraft.find(x=>String(x.serviceId)===String(service.id));
-    return found||{serviceId:String(service.id),mode:'amount',value:0};
-  });
-  container.innerHTML=services.map((service,index)=>{
-    const item=employeePayoutDraft[index]||{mode:'amount',value:0};
-    const mode=item.mode==='percent'?'percent':'amount';
-    return `
-      <div class="payout-row">
-        <div class="payout-service">
-          <div class="payout-service-name">${escapeHTML(service.name)}</div>
-          <div class="payout-service-meta">${Number(service.minutes)} นาที · ราคาบริการ ${money(service.price)}</div>
-        </div>
-        <div class="payout-mode" aria-label="รูปแบบค่ามือ">
-          <button type="button" class="${mode==='amount'?'active':''}" onclick="setPayoutMode(${index},'amount')">บาท/ครั้ง</button>
-          <button type="button" class="${mode==='percent'?'active':''}" onclick="setPayoutMode(${index},'percent')">เปอร์เซ็นต์</button>
-        </div>
-        <div class="payout-value-wrap">
-          <input type="number" min="0" ${mode==='percent'?'max="100" step="0.1"':'step="1"'} value="${Number(item.value||0)}" aria-label="ค่ามือ ${escapeHTML(service.name)}" oninput="updatePayoutValue(${index},this.value)">
-          <span class="payout-value-unit">${mode==='percent'?'%':'บาท'}</span>
-        </div>
-      </div>`;
+  if(!services.length){container.innerHTML='<div class="panel empty">ไม่พบรายการบริการที่เปิดใช้งาน</div>';return;}
+  container.innerHTML=services.map(service=>{
+    const value=Number(sharedPayoutDraft[String(service.id)]||0);
+    return `<div class="payout-row">
+      <div class="payout-service"><div class="payout-service-name">${escapeHTML(service.name)}</div>
+      <div class="payout-service-meta">${Number(service.minutes)} นาที · ราคาบริการ ${money(service.price)}</div></div>
+      <div class="payout-value-wrap"><input type="number" min="0" step="1" value="${value}" aria-label="ค่ามือ ${escapeHTML(service.name)}" oninput="updateSharedPayout('${escapeHTML(service.id)}',this.value)"><span class="payout-value-unit">บาท/ครั้ง</span></div>
+    </div>`;
   }).join('');
 }
 
-function setPayoutMode(index,mode){
-  if(!employeePayoutDraft[index]) return;
-  employeePayoutDraft[index].mode=mode==='percent'?'percent':'amount';
-  renderPayoutRows();
-}
+function updateSharedPayout(serviceId,value){sharedPayoutDraft[String(serviceId)]=value===''?0:Number(value);}
 
-function updatePayoutValue(index,value){
-  if(!employeePayoutDraft[index]) return;
-  employeePayoutDraft[index].value=value===''?0:Number(value);
-}
-
-function resetEmployeeForm(){
-  editingEmployeeId='';
-  employeePayoutDraft=(state.services||[]).filter(x=>active(x.active)).map(x=>({serviceId:String(x.id),mode:'amount',value:0}));
-  const name=document.getElementById('staffName');
-  if(!name) return;
-  document.getElementById('staffName').value='';
-  document.getElementById('staffPhone').value='';
-  document.getElementById('staffType').value='ประจำ';
-  document.getElementById('staffSaveButton').textContent='+ บันทึกพนักงาน';
-  document.getElementById('staffCancelEdit').classList.add('hidden');
-  renderPayoutRows();
-}
-
-function editEmployee(employeeId){
-  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
-  if(!employee) return;
-  editingEmployeeId=String(employee.id);
-  document.getElementById('staffName').value=employee.name||'';
-  document.getElementById('staffPhone').value=employee.phone||'';
-  document.getElementById('staffType').value=employee.type||'ประจำ';
-  const config=getEmployeePayoutConfig(employee);
-  employeePayoutDraft=(state.services||[]).filter(x=>active(x.active)).map(service=>{
-    const saved=config[String(service.id)]||{mode:'amount',value:0};
-    return {serviceId:String(service.id),mode:saved.mode==='percent'?'percent':'amount',value:Number(saved.value||0)};
-  });
-  document.getElementById('staffSaveButton').textContent='บันทึกการแก้ไขพนักงาน';
-  document.getElementById('staffCancelEdit').classList.remove('hidden');
-  renderPayoutRows();
-  document.getElementById('staffName').scrollIntoView({behavior:'smooth',block:'center'});
-}
-
-function renderStaff(){
-  const employees=state.employees||[];
-  document.getElementById('pageContent').innerHTML=`
-    <div class="section-head">
-      <div><h2>พนักงานทั้งหมด</h2><p>กำหนดค่ามือแยกตามพนักงานและแต่ละบริการ</p></div>
-    </div>
-    <div class="panel table-wrap">
-      <table>
-        <thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>รายการค่ามือ</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-        <tbody>
-          ${employees.map(x=>{
-            const count=Object.keys(getEmployeePayoutConfig(x)).length;
-            return `<tr>
-              <td>${escapeHTML(x.name)}</td>
-              <td>${escapeHTML(x.type||'-')}</td>
-              <td>${count} บริการ</td>
-              <td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td>
-              <td><button class="btn btn-light staff-edit-btn" onclick="editEmployee('${escapeHTML(x.id)}')">แก้ไขค่ามือ</button></td>
-            </tr>`;
-          }).join('')||'<tr><td colspan="5" class="empty">ยังไม่มีพนักงาน</td></tr>'}
-        </tbody>
-      </table>
-    </div>
-    <div class="section-head"><div><h2 id="staffFormHeading">เพิ่มพนักงาน</h2><p>ตั้งค่าค่ามือของพนักงานแต่ละบริการ</p></div></div>
-    <div class="panel">
-      <div class="form-grid">
-        <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
-        <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
-        <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
-      </div>
-      <div style="margin:18px 0 10px;font-weight:600;color:var(--green)">กำหนดค่ามือแยกตามรายการบริการ</div>
-      <p class="payout-help">เลือกได้ทั้งค่ามือเป็นบาทต่อครั้ง หรือคิดเป็นเปอร์เซ็นต์ของราคาบริการ ร้านจะได้รับยอดที่เหลือหลังหักส่วนลดและค่ามือโดยอัตโนมัติ</p>
-      <div id="staffPayoutRows" class="payout-list"></div>
-      <div class="staff-form-actions">
-        <button class="btn btn-primary" id="staffSaveButton" onclick="addEmployee()">+ บันทึกพนักงาน</button>
-        <button class="btn btn-light hidden" id="staffCancelEdit" onclick="resetEmployeeForm()">ยกเลิกการแก้ไข</button>
-      </div>
-    </div>`;
-  resetEmployeeForm();
-}
 
 async function addEmployee(){
   const name=document.getElementById('staffName').value.trim();
   if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
-  const servicePayouts={};
-  let invalidPayout=false;
-  employeePayoutDraft.forEach(item=>{
-    const value=Number(item.value||0);
-    if(!Number.isFinite(value)||value<0||(item.mode==='percent'&&value>100)){
-      invalidPayout=true;
-      return;
-    }
-    servicePayouts[String(item.serviceId)]={mode:item.mode==='percent'?'percent':'amount',value:value};
-  });
-  if(invalidPayout){notify('กรุณาตรวจสอบค่ามือ ต้องไม่ติดลบ และเปอร์เซ็นต์ต้องไม่เกิน 100','error');return;}
-  const employee={
-    id:editingEmployeeId||undefined,
-    name:name,
-    phone:document.getElementById('staffPhone').value,
-    type:document.getElementById('staffType').value,
-    servicePayouts:servicePayouts
-  };
   try{
-    const result=await api('saveEmployee',{employee});
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
-    notify(editingEmployeeId?'บันทึกการแก้ไขพนักงานแล้ว':'เพิ่มพนักงานเรียบร้อยแล้ว');
+    notify('เพิ่มพนักงานเรียบร้อยแล้ว');
     await refresh();
     showPage('staff');
   }catch(err){notify(err.message,'error');}
+}
+
+async function saveSharedPayouts(){
+  const invalid=Object.values(sharedPayoutDraft).some(v=>!Number.isFinite(Number(v))||Number(v)<0);
+  if(invalid){notify('กรุณากรอกค่ามือเป็นตัวเลขตั้งแต่ 0 บาทขึ้นไป','error');return;}
+  try{
+    const result=await api('saveServicePayouts',{servicePayouts:sharedPayoutDraft});
+    if(!result.ok) throw new Error(result.error||'บันทึกค่ามือไม่สำเร็จ');
+    notify('บันทึกค่ามือกลางเรียบร้อยแล้ว');
+    await refresh();
+    showPage('staff');
+  }catch(err){notify(err.message,'error');}
+}
+
+function renderStaff(){
+  const employees=state.employees||[];
+  sharedPayoutDraft={...(state.servicePayouts||{})};
+  document.getElementById('pageContent').innerHTML=`
+    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
+      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    </tbody></table></div>
+    <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
+    <div class="panel"><div class="form-grid">
+      <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
+      <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
+      <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
+    </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
+    <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
+    <div class="panel"><div style="margin:0 0 10px;font-weight:600;color:var(--green)">ค่ามือพนักงานแยกตามรายการบริการ</div>
+      <p class="payout-help">ตัวอย่าง นวดไทย 60 นาที ราคา 200 บาท กำหนดค่ามือ 130 บาท พนักงานทุกคนจะได้รับ 130 บาท และร้านได้รับส่วนที่เหลือ 70 บาท (ก่อนหัก/หลังคิดส่วนลดตามระบบ)</p>
+      <div id="staffPayoutRows" class="payout-list"></div>
+      <div class="staff-form-actions"><button class="btn btn-primary" onclick="saveSharedPayouts()">บันทึกค่ามือทั้งหมด</button></div>
+    </div>`;
+  renderPayoutRows();
 }
 
 /* SERVICES */
