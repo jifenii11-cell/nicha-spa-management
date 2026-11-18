@@ -1,7 +1,1357 @@
-<!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NICHA SPA</title><link rel="stylesheet" href="css/style.css"></head>
-<body><main class="wrap"><header><div class="brand">NICHA <span>SPA</span></div><small>Massage & Revenue Management</small></header>
-<section class="panel" id="login"><h1>เข้าสู่ระบบ</h1><p>ระบบบริหารร้าน ณิชา นวดเพื่อสุขภาพ</p><input id="pin" type="password" placeholder="รหัสผู้ดูแล"><button onclick="login()">เข้าสู่ระบบ</button><p id="msg" class="msg"></p></section>
-<section id="app" hidden><nav><button onclick="show('beds')">เตียง</button><button onclick="show('staff')">พนักงาน</button><button onclick="show('services')">บริการ</button><button onclick="show('report')">รายงาน</button></nav>
-<section class="panel"><h2 id="heading">ภาพรวม</h2><div id="content"></div></section></section>
-<footer>NICHA SPA · ระบบบริหารจัดการร้าน</footer></main><script src="js/api.js"></script><script src="js/app.js"></script></body></html>
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#173f32">
+<title>NICHA SPA | Management</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+
+:root{
+  --green:#173f32;
+  --green2:#245744;
+  --green3:#eaf1eb;
+  --gold:#c6a45c;
+  --gold2:#e8d6a6;
+  --cream:#f8f6ef;
+  --white:#fff;
+  --text:#26352e;
+  --muted:#829087;
+  --border:#e8e8df;
+  --red:#b85d51;
+  --shadow:0 10px 35px rgba(29,55,42,.08);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--text);
+  font-family:'Kanit',sans-serif;
+  font-weight:300;
+}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+/* LOGIN */
+
+.login-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:
+    radial-gradient(circle at 15% 15%,#476b50 0,transparent 35%),
+    linear-gradient(135deg,#102f27,#1d4938 60%,#876e3d);
+}
+.login-card{
+  width:100%;
+  max-width:430px;
+  background:#fffdf8;
+  border-radius:25px;
+  padding:42px 35px;
+  text-align:center;
+  box-shadow:0 25px 80px #071d1880;
+}
+.logo-mark{
+  width:76px;height:76px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 17px;
+  color:var(--gold);
+  font-family:'Playfair Display',serif;
+  font-size:29px;
+}
+.login-title{
+  font-family:'Playfair Display',serif;
+  font-size:34px;
+  color:var(--green);
+  letter-spacing:3px;
+}
+.login-sub{
+  color:var(--gold);
+  letter-spacing:2px;
+  font-size:12px;
+  margin:5px 0 28px;
+}
+.login-card input{
+  width:100%;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:14px;
+  outline:none;
+  text-align:center;
+  font-size:17px;
+}
+.login-card input:focus{border-color:var(--gold)}
+.login-error{color:var(--red);font-size:13px;min-height:22px}
+
+/* BUTTONS */
+
+.btn{
+  border:0;
+  padding:11px 18px;
+  border-radius:11px;
+  font-weight:400;
+  transition:.2s;
+}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.04)}
+.btn-primary{background:var(--green);color:white}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-light{background:var(--green3);color:var(--green)}
+.btn-danger{background:#f9e9e6;color:var(--red)}
+.btn-block{width:100%;padding:14px}
+
+/* MAIN LAYOUT */
+
+.app{min-height:100vh}
+.sidebar{
+  position:fixed;
+  left:0;top:0;bottom:0;
+  width:245px;
+  background:var(--green);
+  color:white;
+  padding:26px 17px;
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+}
+.side-brand{
+  text-align:center;
+  padding:8px 0 28px;
+  border-bottom:1px solid #ffffff20;
+}
+.side-brand strong{
+  display:block;
+  font-family:'Playfair Display',serif;
+  font-size:29px;
+  letter-spacing:3px;
+}
+.side-brand span{
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--gold2);
+}
+.side-label{
+  color:#b5c5b8;
+  font-size:11px;
+  letter-spacing:1px;
+  margin:25px 12px 10px;
+}
+.nav-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:13px 15px;
+  border:0;
+  background:transparent;
+  color:#dce8df;
+  border-radius:11px;
+  text-align:left;
+  margin:3px 0;
+  font-size:14px;
+}
+.nav-btn:hover,.nav-btn.active{
+  background:#ffffff18;
+  color:#f0d99e;
+}
+.nav-icon{width:22px;text-align:center;font-size:17px}
+.side-bottom{margin-top:auto;color:#aabdb0;font-size:11px;text-align:center;padding:15px}
+
+.main{
+  margin-left:245px;
+  padding:28px 34px;
+  max-width:1600px;
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  margin-bottom:27px;
+}
+.top-title h1{
+  margin:0;
+  color:var(--green);
+  font-size:25px;
+  font-weight:500;
+}
+.top-title p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.top-right{display:flex;align-items:center;gap:12px}
+.date-label{color:var(--muted);font-size:12px}
+.admin-chip{
+  background:white;
+  padding:9px 14px;
+  border-radius:30px;
+  box-shadow:var(--shadow);
+  font-size:13px;
+}
+
+/* CONTENT */
+
+.welcome{
+  background:linear-gradient(110deg,#173f32,#32634a);
+  color:white;
+  border-radius:20px;
+  padding:25px 30px;
+  margin-bottom:23px;
+  position:relative;
+  overflow:hidden;
+}
+.welcome:after{
+  content:"✦";
+  position:absolute;
+  right:35px;top:-35px;
+  font-size:150px;
+  color:#ffffff12;
+}
+.welcome h2{
+  font-family:'Playfair Display',serif;
+  font-size:25px;
+  margin:0 0 5px;
+  font-weight:500;
+}
+.welcome p{margin:0;color:#d5e2d8;font-size:13px}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  margin-bottom:25px;
+}
+.stat-card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:19px;
+  box-shadow:var(--shadow);
+}
+.stat-top{display:flex;justify-content:space-between;align-items:center}
+.stat-name{color:var(--muted);font-size:12px}
+.stat-icon{
+  width:35px;height:35px;
+  border-radius:10px;
+  display:grid;place-items:center;
+  background:var(--green3);
+}
+.stat-value{
+  color:var(--green);
+  font-size:25px;
+  font-weight:500;
+  margin-top:9px;
+}
+.stat-note{font-size:11px;color:var(--muted)}
+
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:25px 0 14px;
+}
+.section-head h2{
+  margin:0;
+  font-size:18px;
+  color:var(--green);
+  font-weight:500;
+}
+.section-head p{margin:3px 0 0;color:var(--muted);font-size:12px}
+
+/* BEDS */
+
+.bed-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+.bed-card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:17px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  transition:.2s;
+  cursor:pointer;
+}
+.bed-card:hover{transform:translateY(-3px);border-color:var(--gold)}
+.bed-top{display:flex;justify-content:space-between;align-items:center}
+.bed-name{font-size:17px;font-weight:500;color:var(--green)}
+.bed-area{font-size:11px;color:var(--muted);margin-top:3px}
+.status{
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:11px;
+}
+.status-free{background:#e8f4e9;color:#39774b}
+.status-busy{background:#fff0dc;color:#a66a20}
+.bed-action{
+  margin-top:18px;
+  border-top:1px solid var(--border);
+  padding-top:12px;
+  font-size:12px;
+  color:var(--gold);
+}
+
+/* PANELS AND FORMS */
+
+.panel{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:17px;
+  padding:21px;
+  box-shadow:var(--shadow);
+  margin-bottom:17px;
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field select{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  outline:none;
+  background:white;
+  color:var(--text);
+}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.full{grid-column:1/-1}
+.form-actions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+
+/* TABLES */
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th{
+  background:#f5f5ef;
+  color:var(--green);
+  font-size:12px;
+  font-weight:500;
+  text-align:left;
+  padding:13px;
+}
+td{
+  padding:13px;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+.empty{text-align:center;color:var(--muted);padding:35px}
+
+/* MODAL */
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:#10251ecc;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+}
+.modal{
+  background:white;
+  width:100%;
+  max-width:560px;
+  max-height:90vh;
+  overflow:auto;
+  border-radius:20px;
+  padding:24px;
+  box-shadow:0 25px 80px #0004;
+}
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+.modal-head h2{margin:0;color:var(--green);font-size:20px}
+.close{
+  border:0;background:#f2f2ec;
+  border-radius:50%;width:34px;height:34px;
+  font-size:19px;color:var(--green);
+}
+
+/* REPORT */
+
+.report-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+.report-card{
+  padding:20px;
+  border-radius:15px;
+  background:#f5f6ef;
+}
+.report-card span{font-size:12px;color:var(--muted)}
+.report-card strong{
+  display:block;
+  margin-top:7px;
+  color:var(--green);
+  font-size:24px;
+}
+
+/* TOAST */
+
+.toast{
+  position:fixed;
+  bottom:25px;
+  right:25px;
+  background:var(--green);
+  color:white;
+  padding:13px 20px;
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  z-index:100;
+  font-size:13px;
+}
+.loading{opacity:.6;pointer-events:none}
+
+/* RESPONSIVE */
+
+@media(max-width:1050px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .bed-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:700px){
+  .sidebar{
+    width:100%;
+    height:auto;
+    top:auto;
+    bottom:0;
+    padding:7px 5px;
+    flex-direction:row;
+    justify-content:space-around;
+    border-radius:16px 16px 0 0;
+  }
+  .side-brand,.side-label,.side-bottom{display:none}
+  .sidebar nav{display:flex;width:100%;justify-content:space-around}
+  .nav-btn{
+    flex:1;
+    flex-direction:column;
+    justify-content:center;
+    gap:2px;
+    padding:7px 2px;
+    font-size:10px;
+    margin:0;
+  }
+  .nav-icon{font-size:18px}
+  .main{margin-left:0;padding:19px 14px 100px}
+  .topbar{align-items:flex-start}
+  .top-title h1{font-size:21px}
+  .date-label{display:none}
+  .welcome{padding:22px}
+  .stats{gap:9px}
+  .stat-card{padding:13px}
+  .stat-value{font-size:20px}
+  .bed-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .bed-card{padding:13px}
+  .bed-name{font-size:14px}
+  .form-grid{grid-template-columns:1fr}
+  .report-grid{grid-template-columns:1fr}
+}
+@media(max-width:380px){
+  .bed-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<section id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="logo-mark">N</div>
+    <div class="login-title">NICHA SPA</div>
+    <div class="login-sub">MASSAGE & REVENUE MANAGEMENT</div>
+
+    <div class="field">
+      <input id="pin" type="password" placeholder="กรอกรหัสผู้ดูแล">
+    </div>
+
+    <button class="btn btn-primary btn-block" id="loginBtn" onclick="login()">
+      เข้าสู่ระบบ
+    </button>
+
+    <p id="loginError" class="login-error"></p>
+    <div style="font-size:11px;color:#9b9b8d;margin-top:15px">
+      ณิชา นวดเพื่อสุขภาพ
+    </div>
+  </div>
+</section>
+
+<!-- MAIN APP -->
+<div id="app" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="side-brand">
+      <strong>NICHA</strong>
+      <span>SPA MANAGEMENT</span>
+    </div>
+
+    <div class="side-label">MAIN MENU</div>
+
+    <nav>
+      <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">▦</span>ภาพรวม
+      </button>
+      <button class="nav-btn" data-page="beds" onclick="showPage('beds')">
+        <span class="nav-icon">▤</span>จัดการเตียง
+      </button>
+      <button class="nav-btn" data-page="staff" onclick="showPage('staff')">
+        <span class="nav-icon">♙</span>พนักงาน
+      </button>
+      <button class="nav-btn" data-page="services" onclick="showPage('services')">
+        <span class="nav-icon">✧</span>เมนูบริการ
+      </button>
+      <button class="nav-btn" data-page="report" onclick="showPage('report')">
+        <span class="nav-icon">▥</span>รายงาน
+      </button>
+    </nav>
+
+    <div class="side-bottom">NICHA SPA · PREMIUM CARE</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-title">
+        <h1 id="pageTitle">ภาพรวมร้าน</h1>
+        <p>ระบบบริหารจัดการ ณิชา นวดเพื่อสุขภาพ</p>
+      </div>
+      <div class="top-right">
+        <span class="date-label" id="today"></span>
+        <span class="admin-chip">✦ ผู้ดูแลระบบ</span>
+        <button class="btn btn-light" onclick="logout()">ออก</button>
+      </div>
+    </header>
+
+    <section id="pageContent"></section>
+  </main>
+</div>
+
+<!-- BOOKING MODAL -->
+<div id="bookingModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">รับลูกค้าเข้าร้าน</h2>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>เตียงที่เลือก</label>
+        <input id="bookingBedName" disabled>
+        <input id="bookingBedId" type="hidden">
+      </div>
+
+      <div class="field">
+        <label>ประเภทลูกค้า</label>
+        <select id="customerType">
+          <option value="ขาจร">ลูกค้าขาจร</option>
+          <option value="ลูกค้าประจำ">ลูกค้าประจำ</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>ชื่อลูกค้า</label>
+        <input id="customerName" placeholder="ชื่อลูกค้า">
+      </div>
+
+      <div class="field full">
+        <label>พนักงานนวด</label>
+        <select id="bookingEmployee"></select>
+      </div>
+
+      <div class="field full">
+        <label>เลือกบริการ</label>
+        <select id="bookingService" onchange="updateBookingPrice()"></select>
+      </div>
+
+      <div class="field">
+        <label>ราคา (บาท)</label>
+        <input id="bookingPrice" type="number" min="0">
+      </div>
+
+      <div class="field">
+        <label>ส่วนลด (บาท)</label>
+        <input id="bookingDiscount" type="number" min="0" value="0">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="startBooking()">ยืนยันเริ่มงานนวด</button>
+      <button class="btn btn-light" onclick="closeModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+/************************************************
+ * ตั้งค่า API
+ ************************************************/
+
+// นำ URL Web App เดิมที่ลงท้ายด้วย /exec
+// จากไฟล์ api.js มาใส่ตรงนี้
+const API_URL = 'ใส่_URL_APPS_SCRIPT_WEB_APP_ของคุณ';
+
+/************************************************
+ * STATE
+ ************************************************/
+
+let state = {
+  beds: [],
+  employees: [],
+  services: []
+};
+
+let currentPage = 'dashboard';
+let toastTimer = null;
+
+/************************************************
+ * API
+ ************************************************/
+
+async function api(action, data = {}) {
+  const token = sessionStorage.getItem('nicha_token') || '';
+
+  if (!API_URL || API_URL.includes('ใส่_URL')) {
+    throw new Error('กรุณาตั้งค่า API_URL ใน index.html ก่อน');
+  }
+
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      action: action,
+      token: token,
+      ...data
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('เชื่อมต่อระบบไม่สำเร็จ HTTP ' + response.status);
+  }
+
+  return await response.json();
+}
+
+/************************************************
+ * LOGIN
+ ************************************************/
+
+async function login() {
+  const pin = document.getElementById('pin').value.trim();
+  const error = document.getElementById('loginError');
+  const button = document.getElementById('loginBtn');
+
+  if (!pin) {
+    error.textContent = 'กรุณากรอกรหัสผู้ดูแล';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'กำลังเข้าสู่ระบบ...';
+  error.textContent = '';
+
+  try {
+    const result = await api('login', { pin });
+
+    if (!result.ok) {
+      throw new Error(result.error || 'เข้าสู่ระบบไม่สำเร็จ');
+    }
+
+    sessionStorage.setItem('nicha_token', result.token);
+
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    await refresh();
+    showPage('dashboard');
+
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'เข้าสู่ระบบ';
+  }
+}
+
+/************************************************
+ * LOGOUT
+ ************************************************/
+
+async function logout() {
+  try {
+    await api('logout');
+  } catch (err) {
+    console.warn(err);
+  }
+
+  sessionStorage.removeItem('nicha_token');
+
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('pin').value = '';
+}
+
+/************************************************
+ * LOAD DATA
+ ************************************************/
+
+async function refresh() {
+  const result = await api('init');
+
+  if (!result.ok) {
+    throw new Error(result.error || 'โหลดข้อมูลไม่สำเร็จ');
+  }
+
+  state = {
+    beds: result.beds || [],
+    employees: result.employees || [],
+    services: result.services || []
+  };
+}
+
+/************************************************
+ * NAVIGATION
+ ************************************************/
+
+function showPage(page) {
+  currentPage = page;
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle(
+      'active',
+      btn.dataset.page === page
+    );
+  });
+
+  const titles = {
+    dashboard: 'ภาพรวมร้าน',
+    beds: 'จัดการเตียง',
+    staff: 'จัดการพนักงาน',
+    services: 'เมนูบริการ',
+    report: 'รายงานรายได้'
+  };
+
+  document.getElementById('pageTitle').textContent = titles[page];
+
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'beds') renderBeds();
+  if (page === 'staff') renderStaff();
+  if (page === 'services') renderServices();
+  if (page === 'report') renderReport();
+}
+
+/************************************************
+ * HELPERS
+ ************************************************/
+
+function money(value) {
+  return Number(value || 0).toLocaleString('th-TH', {
+    maximumFractionDigits: 2
+  }) + ' ฿';
+}
+
+function active(value) {
+  return value === true ||
+    String(value).toLowerCase() === 'true' ||
+    String(value) === '1';
+}
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+function notify(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 2800);
+}
+
+function todayText() {
+  document.getElementById('today').textContent =
+    new Date().toLocaleDateString('th-TH', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+}
+
+/************************************************
+ * DASHBOARD
+ ************************************************/
+
+function renderDashboard() {
+  const beds = state.beds.filter(x => active(x.active));
+  const busy = beds.filter(x => x.status !== 'ว่าง').length;
+  const free = beds.length - busy;
+  const staff = state.employees.filter(x => active(x.active)).length;
+  const services = state.services.filter(x => active(x.active)).length;
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="welcome">
+      <h2>Welcome to NICHA SPA</h2>
+      <p>บริหารจัดการร้านนวดของคุณอย่างสวยงามและเป็นระบบ</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-name">เตียงทั้งหมด</span>
+          <span class="stat-icon">▤</span>
+        </div>
+        <div class="stat-value">${beds.length}</div>
+        <div class="stat-note">เตียงและห้องบริการ</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-name">เตียงว่าง</span>
+          <span class="stat-icon">✧</span>
+        </div>
+        <div class="stat-value">${free}</div>
+        <div class="stat-note">พร้อมรับลูกค้า</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-name">กำลังให้บริการ</span>
+          <span class="stat-icon">♨</span>
+        </div>
+        <div class="stat-value">${busy}</div>
+        <div class="stat-note">เตียงที่กำลังใช้งาน</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-name">พนักงาน</span>
+          <span class="stat-icon">♙</span>
+        </div>
+        <div class="stat-value">${staff}</div>
+        <div class="stat-note">พนักงานที่เปิดใช้งาน</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>สถานะเตียงและห้องบริการ</h2>
+        <p>เลือกเตียงเพื่อเริ่มรับลูกค้า</p>
+      </div>
+      <button class="btn btn-light" onclick="showPage('beds')">จัดการเตียง</button>
+    </div>
+
+    ${bedCards(beds)}
+  `;
+}
+
+/************************************************
+ * BED CARDS
+ ************************************************/
+
+function bedCards(beds) {
+  if (!beds.length) {
+    return '<div class="panel empty">ยังไม่มีข้อมูลเตียง</div>';
+  }
+
+  return `
+    <div class="bed-grid">
+      ${beds.map(bed => {
+        const busy = bed.status !== 'ว่าง';
+
+        return `
+          <div class="bed-card" onclick="clickBed('${escapeHTML(bed.id)}')">
+            <div class="bed-top">
+              <div>
+                <div class="bed-name">${escapeHTML(bed.name)}</div>
+                <div class="bed-area">${escapeHTML(bed.area)}</div>
+              </div>
+              <span class="status ${busy ? 'status-busy' : 'status-free'}">
+                ${escapeHTML(bed.status || 'ว่าง')}
+              </span>
+            </div>
+            <div class="bed-action">
+              ${busy ? 'เปิดเพื่อดูสถานะและปิดงาน' : '+ แตะเพื่อรับลูกค้า'}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderBeds() {
+  const beds = state.beds.filter(x => active(x.active));
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="section-head">
+      <div>
+        <h2>เตียงและห้องบริการ</h2>
+        <p>เลือกเตียงเพื่อรับลูกค้า หรือจัดการเตียงเพิ่มเติม</p>
+      </div>
+    </div>
+
+    ${bedCards(beds)}
+
+    <div class="section-head">
+      <div>
+        <h2>เพิ่มเตียงใหม่</h2>
+        <p>เพิ่มเตียงหรือห้องบริการในร้าน</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field">
+          <label>ชื่อเตียง</label>
+          <input id="newBedName" placeholder="เช่น เตียง 7">
+        </div>
+        <div class="field">
+          <label>พื้นที่</label>
+          <select id="newBedArea">
+            <option>ห้องหลัก</option>
+            <option>ห้อง Aroma</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addBed()">+ บันทึกเตียง</button>
+      </div>
+    </div>
+  `;
+}
+
+/************************************************
+ * BED ACTION
+ ************************************************/
+
+function clickBed(id) {
+  const bed = state.beds.find(x => String(x.id) === String(id));
+
+  if (!bed) return;
+
+  if (bed.status !== 'ว่าง') {
+    const choice = confirm(
+      bed.name + ' กำลังให้บริการอยู่\nต้องการปิดงานและคิดเงินหรือไม่?'
+    );
+
+    if (choice) finishBookingForBed(bed);
+    return;
+  }
+
+  openBooking(bed);
+}
+
+function openBooking(bed) {
+  const employees = state.employees.filter(x => active(x.active));
+  const services = state.services.filter(x => active(x.active));
+
+  if (!employees.length) {
+    notify('กรุณาเพิ่มพนักงานก่อน');
+    return;
+  }
+
+  if (!services.length) {
+    notify('กรุณาเพิ่มบริการก่อน');
+    return;
+  }
+
+  document.getElementById('bookingBedId').value = bed.id;
+  document.getElementById('bookingBedName').value = bed.name;
+
+  document.getElementById('bookingEmployee').innerHTML =
+    employees.map(x =>
+      `<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`
+    ).join('');
+
+  document.getElementById('bookingService').innerHTML =
+    services.map(x =>
+      `<option value="${escapeHTML(x.id)}" data-price="${Number(x.price)}">
+        ${escapeHTML(x.name)} · ${x.minutes} นาที · ${money(x.price)}
+      </option>`
+    ).join('');
+
+  document.getElementById('customerName').value = '';
+  document.getElementById('customerType').value = 'ขาจร';
+  document.getElementById('bookingDiscount').value = 0;
+
+  updateBookingPrice();
+
+  document.getElementById('bookingModal').classList.remove('hidden');
+}
+
+function updateBookingPrice() {
+  const select = document.getElementById('bookingService');
+  const option = select.options[select.selectedIndex];
+
+  if (option) {
+    document.getElementById('bookingPrice').value =
+      option.dataset.price;
+  }
+}
+
+function closeModal() {
+  document.getElementById('bookingModal').classList.add('hidden');
+}
+
+/************************************************
+ * START BOOKING
+ ************************************************/
+
+async function startBooking() {
+  const booking = {
+    bedId: document.getElementById('bookingBedId').value,
+    customerType: document.getElementById('customerType').value,
+    customerName: document.getElementById('customerName').value,
+    employeeId: document.getElementById('bookingEmployee').value,
+    serviceId: document.getElementById('bookingService').value,
+    price: Number(document.getElementById('bookingPrice').value),
+    discount: Number(document.getElementById('bookingDiscount').value || 0)
+  };
+
+  try {
+    const result = await api('startBooking', { booking });
+
+    if (!result.ok) {
+      throw new Error(result.error || 'เริ่มงานไม่สำเร็จ');
+    }
+
+    closeModal();
+    await refresh();
+    showPage(currentPage);
+    notify('เริ่มงานนวดเรียบร้อยแล้ว');
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+/************************************************
+ * FINISH BOOKING
+ ************************************************/
+
+async function finishBookingForBed(bed) {
+  const bookings = await api('init');
+
+  if (!bookings.ok) {
+    alert(bookings.error || 'โหลดข้อมูลไม่ได้');
+    return;
+  }
+
+  // API init ไม่ได้ส่ง bookings กลับมา
+  // ต้องค้นหารายการจากชีต Bookings ผ่าน API เพิ่มเติม
+  alert(
+    'ยังไม่สามารถค้นหารายการจองที่กำลังนวดจากหน้าเว็บได้\n' +
+    'ต้องเพิ่ม API สำหรับรายการงานที่กำลังดำเนินการก่อนเปิดใช้การคิดเงิน'
+  );
+}
+
+/************************************************
+ * STAFF
+ ************************************************/
+
+function renderStaff() {
+  const employees = state.employees;
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="section-head">
+      <div>
+        <h2>พนักงานทั้งหมด</h2>
+        <p>จัดการข้อมูลและสัดส่วนแบ่งรายได้</p>
+      </div>
+    </div>
+
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ชื่อพนักงาน</th>
+            <th>ประเภท</th>
+            <th>ร้าน</th>
+            <th>เจ้าของ</th>
+            <th>พนักงาน</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${employees.map(x => `
+            <tr>
+              <td>${escapeHTML(x.name)}</td>
+              <td>${escapeHTML(x.type)}</td>
+              <td>${x.shareShop}%</td>
+              <td>${x.shareOwner}%</td>
+              <td>${x.shareStaff}%</td>
+              <td>${active(x.active) ? 'ใช้งาน' : 'ปิดใช้งาน'}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="6" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>เพิ่มพนักงาน</h2>
+        <p>กำหนดประเภทและส่วนแบ่งรายได้</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field">
+          <label>ชื่อพนักงาน</label>
+          <input id="staffName" placeholder="ชื่อพนักงาน">
+        </div>
+        <div class="field">
+          <label>เบอร์โทรศัพท์</label>
+          <input id="staffPhone" placeholder="เบอร์โทร">
+        </div>
+        <div class="field">
+          <label>ประเภทพนักงาน</label>
+          <select id="staffType">
+            <option>ประจำ</option>
+            <option>พาร์ทไทม์</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ส่วนแบ่งร้าน (%)</label>
+          <input id="staffShop" type="number" value="40">
+        </div>
+        <div class="field">
+          <label>ส่วนแบ่งเจ้าของ (%)</label>
+          <input id="staffOwner" type="number" value="10">
+        </div>
+        <div class="field">
+          <label>ส่วนแบ่งพนักงาน (%)</label>
+          <input id="staffShare" type="number" value="50">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button>
+      </div>
+    </div>
+  `;
+}
+
+async function addEmployee() {
+  const employee = {
+    name: document.getElementById('staffName').value,
+    phone: document.getElementById('staffPhone').value,
+    type: document.getElementById('staffType').value,
+    shareShop: Number(document.getElementById('staffShop').value),
+    shareOwner: Number(document.getElementById('staffOwner').value),
+    shareStaff: Number(document.getElementById('staffShare').value)
+  };
+
+  try {
+    const result = await api('saveEmployee', { employee });
+
+    if (!result.ok) throw new Error(result.error);
+
+    await refresh();
+    renderStaff();
+    notify('เพิ่มพนักงานเรียบร้อย');
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+/************************************************
+ * SERVICES
+ ************************************************/
+
+function renderServices() {
+  document.getElementById('pageContent').innerHTML = `
+    <div class="section-head">
+      <div>
+        <h2>เมนูบริการของร้าน</h2>
+        <p>จัดการรายการนวด เวลา และราคา</p>
+      </div>
+    </div>
+
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ชื่อบริการ</th>
+            <th>ระยะเวลา</th>
+            <th>ราคา</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.services.map(x => `
+            <tr>
+              <td>${escapeHTML(x.name)}</td>
+              <td>${x.minutes} นาที</td>
+              <td>${money(x.price)}</td>
+              <td>${active(x.active) ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="4" class="empty">ยังไม่มีบริการ</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>เพิ่มบริการใหม่</h2>
+        <p>เพิ่มคอร์สนวดและกำหนดราคา</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field full">
+          <label>ชื่อบริการ</label>
+          <input id="serviceName" placeholder="เช่น นวดไทยผ่อนคลาย">
+        </div>
+        <div class="field">
+          <label>ระยะเวลา (นาที)</label>
+          <input id="serviceMinutes" type="number" placeholder="60">
+        </div>
+        <div class="field">
+          <label>ราคา (บาท)</label>
+          <input id="servicePrice" type="number" placeholder="300">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addService()">+ บันทึกบริการ</button>
+      </div>
+    </div>
+  `;
+}
+
+async function addService() {
+  const service = {
+    name: document.getElementById('serviceName').value,
+    minutes: Number(document.getElementById('serviceMinutes').value),
+    price: Number(document.getElementById('servicePrice').value)
+  };
+
+  try {
+    const result = await api('saveService', { service });
+
+    if (!result.ok) throw new Error(result.error);
+
+    await refresh();
+    renderServices();
+    notify('เพิ่มบริการเรียบร้อย');
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+/************************************************
+ * REPORT
+ ************************************************/
+
+async function renderReport() {
+  const content = document.getElementById('pageContent');
+
+  content.innerHTML = '<div class="panel empty">กำลังโหลดรายงาน...</div>';
+
+  try {
+    const r = await api('report');
+
+    if (!r.ok) throw new Error(r.error || 'โหลดรายงานไม่สำเร็จ');
+
+    content.innerHTML = `
+      <div class="section-head">
+        <div>
+          <h2>รายงานรายได้ประจำวัน</h2>
+          <p>สรุปยอดรับชำระของวันนี้</p>
+        </div>
+        <button class="btn btn-light" onclick="renderReport()">↻ รีเฟรช</button>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-card">
+          <span>ยอดรับชำระสุทธิ</span>
+          <strong>${money(r.total)}</strong>
+        </div>
+        <div class="report-card">
+          <span>ยอดก่อนหักส่วนลด</span>
+          <strong>${money(r.gross)}</strong>
+        </div>
+        <div class="report-card">
+          <span>ส่วนลดรวม</span>
+          <strong>${money(r.discount)}</strong>
+        </div>
+        <div class="report-card">
+          <span>รายได้ร้าน</span>
+          <strong>${money(r.shop)}</strong>
+        </div>
+        <div class="report-card">
+          <span>ส่วนแบ่งเจ้าของ</span>
+          <strong>${money(r.owner)}</strong>
+        </div>
+        <div class="report-card">
+          <span>ค่ามือพนักงาน</span>
+          <strong>${money(r.staff)}</strong>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <div style="color:var(--muted);font-size:13px">
+          จำนวนรายการที่ชำระแล้ววันนี้
+        </div>
+        <div style="font-size:30px;color:var(--green);font-weight:500">
+          ${Number(r.count || 0)} รายการ
+        </div>
+      </div>
+    `;
+
+  } catch (err) {
+    content.innerHTML = `
+      <div class="panel">
+        <p style="color:var(--red)">${escapeHTML(err.message)}</p>
+      </div>
+    `;
+  }
+}
+
+/************************************************
+ * STARTUP
+ ************************************************/
+
+document.getElementById('pin').addEventListener('keydown', event => {
+  if (event.key === 'Enter') login();
+});
+
+todayText();
+</script>
+
+</body>
+</html>
