@@ -1087,11 +1087,11 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
     <div class="side-label">MAIN MENU</div>
 
     <nav>
-      <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-icon">▦</span>หน้าร้าน</button>
-      <button class="nav-btn" data-page="beds" onclick="showPage('beds')"><span class="nav-icon">▤</span>จัดการเตียง</button>
-      <button class="nav-btn" data-page="staff" onclick="showPage('staff')"><span class="nav-icon">♙</span>พนักงาน</button>
-      <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
-      <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
+      <button class="nav-btn active" data-page="dashboard" ><span class="nav-icon">▦</span>หน้าร้าน</button>
+      <button class="nav-btn" data-page="beds" ><span class="nav-icon">▤</span>จัดการเตียง</button>
+      <button class="nav-btn" data-page="staff" ><span class="nav-icon">♙</span>พนักงาน</button>
+      <button class="nav-btn" data-page="services" ><span class="nav-icon">✧</span>เมนูบริการ</button>
+      <button class="nav-btn" data-page="report" ><span class="nav-icon">▥</span>รายงาน</button>
     </nav>
 
     <div class="side-bottom">NICHA SPA · PREMIUM CARE</div>
@@ -1413,12 +1413,6 @@ function refreshAfterAction() {
 }
 
 function showPage(page) {
-  currentPage=page;
-
-  document.querySelectorAll('.nav-btn').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.page===page);
-  });
-
   const titles={
     dashboard:'หน้าร้าน',
     beds:'จัดการเตียง',
@@ -1426,14 +1420,45 @@ function showPage(page) {
     services:'เมนูบริการ',
     report:'รายงาน'
   };
+  if(!Object.prototype.hasOwnProperty.call(titles,page)) return;
 
-  document.getElementById('pageTitle').textContent=titles[page];
+  currentPage=page;
+  document.querySelectorAll('.nav-btn[data-page]').forEach(btn=>{
+    const selected=btn.dataset.page===page;
+    btn.classList.toggle('active',selected);
+    if(selected) btn.setAttribute('aria-current','page');
+    else btn.removeAttribute('aria-current');
+  });
 
-  if(page==='dashboard') renderDashboard();
-  if(page==='beds') renderBeds();
-  if(page==='staff') renderStaff();
-  if(page==='services') renderServices();
-  if(page==='report') renderReport();
+  const title=document.getElementById('pageTitle');
+  if(title) title.textContent=titles[page];
+
+  // เปลี่ยนหน้าให้เห็นผลทันที แล้วค่อยโหลดข้อมูลของหน้านั้น
+  const content=document.getElementById('pageContent');
+  if(content) content.innerHTML='';
+  try {
+    if(page==='dashboard') renderDashboard();
+    else if(page==='beds') renderBeds();
+    else if(page==='staff') renderStaff();
+    else if(page==='services') renderServices();
+    else if(page==='report') renderReport();
+  } catch(err) {
+    console.error('เปลี่ยนหน้าไม่สำเร็จ:',err);
+    if(content) content.innerHTML=`<div class="panel"><p style="color:var(--red)">เปิดหน้า${titles[page]}ไม่สำเร็จ: ${escapeHTML(err.message||err)}</p></div>`;
+  }
+}
+
+// ใช้ event delegation แทน onclick บนปุ่ม เพื่อให้เมนูรายงานทำงานสม่ำเสมอ
+// ทั้งหน้าจอคอมพิวเตอร์และเมนูด้านล่างบนมือถือ
+const mainNavigation=document.querySelector('.sidebar nav');
+if(mainNavigation) {
+  mainNavigation.addEventListener('click',event=>{
+    const button=event.target.closest('.nav-btn[data-page]');
+    if(!button || !mainNavigation.contains(button)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showPage(button.dataset.page);
+  });
 }
 
 function money(value) {
@@ -1585,7 +1610,7 @@ function renderDashboard() {
         <h2>สถานะเตียงและห้องบริการ</h2>
         <p>เลือกเตียงเพื่อเริ่มรับลูกค้า</p>
       </div>
-      <button class="btn btn-light" onclick="showPage('beds')">จัดการเตียง</button>
+      <button class="btn btn-light" >จัดการเตียง</button>
     </div>
 
     ${bedCards(beds)}
