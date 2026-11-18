@@ -905,6 +905,31 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 
 .delete-bed-actions button { flex:1; }
 
+/* ตัวเลือกพนักงานนวดแบบ Popup */
+.staff-picker-trigger {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:11px;
+  background:#fff; color:var(--green); text-align:left; min-height:46px;
+}
+.staff-picker-trigger:hover { border-color:var(--gold); background:#fffdf7; }
+.staff-picker-trigger.selected { border-color:#b8d8bd; background:#f1f8f1; font-weight:500; }
+.employee-picker-modal { max-width:500px; }
+.employee-picker-hint { margin:-8px 0 14px; color:var(--muted); font-size:12px; }
+.employee-picker-list { display:grid; gap:9px; max-height:55vh; overflow:auto; }
+.employee-picker-item {
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  width:100%; padding:13px 14px; border:1px solid var(--border); border-radius:12px;
+  background:#fff; color:var(--text); text-align:left;
+}
+.employee-picker-item.available { cursor:pointer; }
+.employee-picker-item.available:hover { border-color:var(--gold); background:#fffdf6; }
+.employee-picker-item.unavailable { background:#f5f5f2; color:#929a94; cursor:not-allowed; }
+.employee-picker-name { font-weight:500; }
+.employee-picker-status { flex-shrink:0; padding:5px 10px; border-radius:20px; font-size:11px; }
+.employee-picker-status.available { color:#287044; background:#e2f3e6; }
+.employee-picker-status.unavailable { color:#a34f45; background:#f9e9e6; }
+.employee-picker-empty { padding:20px; text-align:center; color:var(--muted); background:#f7f7f2; border-radius:12px; }
+
 @media(max-width:1050px) {
   .stats { grid-template-columns:repeat(3,1fr); }
   .bed-grid { grid-template-columns:repeat(2,1fr); }
@@ -1052,7 +1077,10 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 
       <div class="field full">
         <label>พนักงานนวด</label>
-        <select id="bookingEmployee"></select>
+        <input id="bookingEmployee" type="hidden" value="">
+        <button type="button" class="staff-picker-trigger" id="bookingEmployeeButton" onclick="openEmployeePicker()">
+          <span id="bookingEmployeeLabel">กดเพื่อเลือกพนักงานนวด</span><span aria-hidden="true">⌄</span>
+        </button>
       </div>
 
       <div class="field full">
@@ -1075,6 +1103,20 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="btn btn-gold" onclick="prepareBooking()">เตรียมไว้</button>
       <button class="btn btn-primary" onclick="startBooking()">เริ่มนวดทันที</button>
       <button class="btn btn-light" onclick="closeModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div id="employeePickerModal" class="modal-backdrop hidden" style="z-index:70">
+  <div class="modal employee-picker-modal">
+    <div class="modal-head">
+      <h2>เลือกพนักงานนวด</h2>
+      <button class="close" onclick="closeEmployeePicker()">×</button>
+    </div>
+    <p class="employee-picker-hint">เลือกได้เฉพาะพนักงานที่ยังไม่มีงานนวดอยู่</p>
+    <div id="employeePickerList" class="employee-picker-list"></div>
+    <div class="form-actions">
+      <button class="btn btn-light" onclick="closeEmployeePicker()">ปิด</button>
     </div>
   </div>
 </div>
@@ -1792,8 +1834,9 @@ function openBooking(bed) {
   document.getElementById('bookingBedId').value=bed.id;
   document.getElementById('bookingBedName').value=bed.name;
 
-  document.getElementById('bookingEmployee').innerHTML=
-    employees.map(x=>`<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`).join('');
+  document.getElementById('bookingEmployee').value='';
+  document.getElementById('bookingEmployeeLabel').textContent='กดเพื่อเลือกพนักงานนวด';
+  document.getElementById('bookingEmployeeButton').classList.remove('selected');
 
   document.getElementById('bookingService').innerHTML=
     services.map(x=>`
@@ -1811,6 +1854,58 @@ function openBooking(bed) {
   document.getElementById('bookingModal').classList.remove('hidden');
 }
 
+function getBusyEmployeeIds() {
+  const busy=new Set();
+  (state.activeBookings||[]).forEach(booking=>{
+    const status=String(booking.status||'').trim();
+    if(booking.employeeId && (status==='กำลังนวด' || status==='เตรียมไว้')) {
+      busy.add(String(booking.employeeId));
+    }
+  });
+  return busy;
+}
+
+function openEmployeePicker() {
+  const employees=(state.employees||[]).filter(x=>active(x.active));
+  const busyIds=getBusyEmployeeIds();
+  const list=document.getElementById('employeePickerList');
+
+  if(!employees.length) {
+    list.innerHTML='<div class="employee-picker-empty">ยังไม่มีพนักงานที่เปิดใช้งาน</div>';
+  } else {
+    list.innerHTML=employees.map(employee=>{
+      const busy=busyIds.has(String(employee.id));
+      const name=escapeHTML(employee.name||'ไม่ระบุชื่อ');
+      const id=escapeHTML(employee.id);
+      return `
+        <button type="button" class="employee-picker-item ${busy?'unavailable':'available'}"
+          ${busy?'disabled':''} ${busy?'':'onclick="selectBookingEmployee(\''+id+'\')"'}>
+          <span class="employee-picker-name">${name}</span>
+          <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'ไม่ว่าง':'ว่าง'}</span>
+        </button>`;
+    }).join('');
+  }
+  document.getElementById('employeePickerModal').classList.remove('hidden');
+}
+
+function selectBookingEmployee(employeeId) {
+  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
+  if(!employee) return;
+  if(getBusyEmployeeIds().has(String(employee.id))) {
+    notify('พนักงานท่านนี้กำลังมีงาน ไม่สามารถเลือกได้','error');
+    openEmployeePicker();
+    return;
+  }
+  document.getElementById('bookingEmployee').value=employee.id;
+  document.getElementById('bookingEmployeeLabel').textContent=employee.name;
+  document.getElementById('bookingEmployeeButton').classList.add('selected');
+  closeEmployeePicker();
+}
+
+function closeEmployeePicker() {
+  document.getElementById('employeePickerModal').classList.add('hidden');
+}
+
 function updateBookingPrice() {
   const select=document.getElementById('bookingService');
   const option=select.options[select.selectedIndex];
@@ -1825,11 +1920,14 @@ function closeModal() {
 }
 
 function collectBookingForm() {
+  const employeeId=document.getElementById('bookingEmployee').value;
+  if(!employeeId) throw new Error('กรุณาเลือกพนักงานนวด');
+  if(getBusyEmployeeIds().has(String(employeeId))) throw new Error('พนักงานท่านนี้กำลังมีงาน กรุณาเลือกคนอื่น');
   return {
     bedId:document.getElementById('bookingBedId').value,
     customerType:document.getElementById('customerType').value,
     customerName:document.getElementById('customerName').value,
-    employeeId:document.getElementById('bookingEmployee').value,
+    employeeId,
     serviceId:document.getElementById('bookingService').value,
     price:Number(document.getElementById('bookingPrice').value),
     discount:Number(document.getElementById('bookingDiscount').value||0)
@@ -1927,9 +2025,8 @@ async function cancelPreparedBooking() {
 /* START MASSAGE */
 
 async function startBooking() {
-  const booking=collectBookingForm();
-
   try {
+    const booking=collectBookingForm();
     const result=await api('startBooking',{booking});
 
     if(!result.ok) throw new Error(result.error||'เริ่มงานไม่สำเร็จ');
