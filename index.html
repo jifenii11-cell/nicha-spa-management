@@ -1254,6 +1254,33 @@ async function refresh() {
   };
 }
 
+// รีเฟรชข้อมูลหลังบันทึกแบบเบื้องหลัง เพื่อไม่ให้หน้าจอค้างรอโหลด
+let backgroundRefreshPromise=null;
+let refreshRequested=false;
+function refreshAfterAction() {
+  // ถ้ามีการบันทึกซ้ำระหว่างกำลังรีเฟรช ให้ทำรอบใหม่อีกครั้ง
+  refreshRequested=true;
+  if(backgroundRefreshPromise) return backgroundRefreshPromise;
+
+  backgroundRefreshPromise=(async()=>{
+    do {
+      refreshRequested=false;
+      try {
+        await refresh();
+        // วาดเฉพาะหน้าที่ผู้ใช้กำลังเปิดอยู่ ไม่ดึงผู้ใช้กลับหน้าเดิม
+        showPage(currentPage);
+      } catch(err) {
+        console.warn('Background refresh:',err);
+        notify('บันทึกแล้ว แต่รีเฟรชข้อมูลไม่สำเร็จ กรุณาเปลี่ยนหน้าเพื่อโหลดใหม่','error');
+      }
+    } while(refreshRequested);
+  })().finally(()=>{
+    backgroundRefreshPromise=null;
+  });
+
+  return backgroundRefreshPromise;
+}
+
 function showPage(page) {
   currentPage=page;
 
@@ -1694,8 +1721,8 @@ async function confirmDeleteBed() {
 
     closeDeleteBedModal();
 
-    await refresh();
     renderBeds();
+    refreshAfterAction();
 
     notify('ลบเตียงเรียบร้อยแล้ว');
 
@@ -1719,9 +1746,8 @@ async function addBed() {
 
     if(!result.ok) throw new Error(result.error||'เพิ่มเตียงไม่สำเร็จ');
 
-    await refresh();
-    renderBeds();
-    notify('เพิ่มเตียงเรียบร้อย');
+    refreshAfterAction();
+    notify('บันทึกเพิ่มเตียงแล้ว กำลังอัปเดตข้อมูล');
 
   } catch(err) {
     notify(err.message,'error');
@@ -1820,9 +1846,8 @@ async function prepareBooking() {
     if(!result.ok) throw new Error(result.error||'เตรียมรายการไม่สำเร็จ');
 
     closeModal();
-    await refresh();
-    showPage(currentPage);
     notify('บันทึกรายการเตรียมรับลูกค้าแล้ว');
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -1830,35 +1855,29 @@ async function prepareBooking() {
 }
 
 function openPreparedBooking(bed) {
-  try {
-    // ใช้ข้อมูลที่โหลดไว้ใน state แล้ว ไม่ต้องรอเรียก Google Apps Script ซ้ำ
-    selectedPreparedBooking=(state.activeBookings||[]).find(x=>
-      String(x.bedId)===String(bed.id) &&
-      x.status==='เตรียมไว้'
-    );
+  selectedPreparedBooking=(state.activeBookings||[]).find(x=>
+    String(x.bedId)===String(bed.id) &&
+    x.status==='เตรียมไว้'
+  );
 
-    if(!selectedPreparedBooking) {
-      notify('ไม่พบรายการเตรียมไว้ กรุณารีเฟรชข้อมูล','error');
-      return;
-    }
-
-    const b=selectedPreparedBooking;
-    const employee=state.employees.find(x=>
-      String(x.id)===String(b.employeeId)
-    );
-
-    document.getElementById('preparedDetails').innerHTML=`
-      <p><b>${escapeHTML(b.customerName||'ลูกค้าทั่วไป')}</b> · ${escapeHTML(b.customerType||'')}</p>
-      <p>บริการ: ${escapeHTML(b.serviceName||'-')} · ${Number(b.minutes||0)} นาที</p>
-      <p>หมอนวด: ${escapeHTML(b.employeeName||(employee||{}).name||'-')}</p>
-      <p>ราคา: ${money(b.price)} · ส่วนลด: ${money(b.discount)} · สุทธิ: ${money(b.net)}</p>
-    `;
-
-    document.getElementById('preparedModal').classList.remove('hidden');
-
-  } catch(err) {
-    notify(err.message,'error');
+  if(!selectedPreparedBooking) {
+    notify('ไม่พบรายการเตรียมไว้ ข้อมูลอาจยังไม่อัปเดต กรุณารีเฟรชข้อมูล','error');
+    return;
   }
+
+  const b=selectedPreparedBooking;
+  const employee=state.employees.find(x=>
+    String(x.id)===String(b.employeeId)
+  );
+
+  document.getElementById('preparedDetails').innerHTML=`
+    <p><b>${escapeHTML(b.customerName||'ลูกค้าทั่วไป')}</b> · ${escapeHTML(b.customerType||'')}</p>
+    <p>บริการ: ${escapeHTML(b.serviceName||'-')} · ${Number(b.minutes||0)} นาที</p>
+    <p>หมอนวด: ${escapeHTML(b.employeeName||(employee||{}).name||'-')}</p>
+    <p>ราคา: ${money(b.price)} · ส่วนลด: ${money(b.discount)} · สุทธิ: ${money(b.net)}</p>
+  `;
+
+  document.getElementById('preparedModal').classList.remove('hidden');
 }
 
 function closePreparedModal() {
@@ -1877,9 +1896,8 @@ async function startPreparedBooking() {
     if(!result.ok) throw new Error(result.error||'เริ่มนวดไม่สำเร็จ');
 
     closePreparedModal();
-    await refresh();
-    showPage(currentPage);
     notify('เริ่มนวดเรียบร้อยแล้ว');
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -1897,9 +1915,8 @@ async function cancelPreparedBooking() {
     if(!result.ok) throw new Error(result.error||'ยกเลิกรายการไม่สำเร็จ');
 
     closePreparedModal();
-    await refresh();
-    showPage(currentPage);
     notify('ยกเลิกรายการเตรียมไว้แล้ว');
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -1917,9 +1934,8 @@ async function startBooking() {
     if(!result.ok) throw new Error(result.error||'เริ่มงานไม่สำเร็จ');
 
     closeModal();
-    await refresh();
-    showPage(currentPage);
     notify('เริ่มงานนวดเรียบร้อยแล้ว');
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -1930,7 +1946,6 @@ async function startBooking() {
 
 function finishBookingForBed(bed) {
   try {
-    // ใช้รายการนวดที่อยู่ใน state จากการโหลดข้อมูลล่าสุด เพื่อเปิด Checkout ทันที
     const booking=(state.activeBookings||[]).find(x=>
       String(x.bedId)===String(bed.id) &&
       x.status==='กำลังนวด'
@@ -2073,9 +2088,8 @@ async function confirmCheckout() {
     if(!result.ok) throw new Error(result.error||'บันทึกการชำระเงินไม่สำเร็จ');
 
     closeCheckout();
-    await refresh();
-    showPage(currentPage);
     notify('รับชำระเงินและจบงานเรียบร้อยแล้ว');
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -2157,9 +2171,8 @@ async function addEmployee() {
 
     if(!result.ok) throw new Error(result.error);
 
-    await refresh();
-    renderStaff();
-    notify('เพิ่มพนักงานเรียบร้อย');
+    refreshAfterAction();
+    notify('บันทึกเพิ่มพนักงานแล้ว กำลังอัปเดตข้อมูล');
 
   } catch(err) {
     notify(err.message,'error');
@@ -2220,9 +2233,8 @@ async function addService() {
 
     if(!result.ok) throw new Error(result.error);
 
-    await refresh();
-    renderServices();
-    notify('เพิ่มบริการเรียบร้อย');
+    refreshAfterAction();
+    notify('บันทึกเพิ่มบริการแล้ว กำลังอัปเดตข้อมูล');
 
   } catch(err) {
     notify(err.message,'error');
@@ -2231,14 +2243,18 @@ async function addService() {
 
 /* REPORT */
 
+let reportRequestId=0;
 async function renderReport() {
   const content=document.getElementById('pageContent');
+  const requestId=++reportRequestId;
 
   content.innerHTML='<div class="panel empty">กำลังโหลดรายงาน...</div>';
 
   try {
     const r=await api('report');
 
+    // ป้องกันผลตอบกลับเก่ามาทับหน้าที่ผู้ใช้เปลี่ยนไปแล้ว
+    if(requestId!==reportRequestId || currentPage!=='report') return;
     if(!r.ok) throw new Error(r.error||'โหลดรายงานไม่สำเร็จ');
 
     content.innerHTML=`
@@ -2263,9 +2279,64 @@ async function renderReport() {
     `;
 
   } catch(err) {
+    if(requestId!==reportRequestId || currentPage!=='report') return;
     content.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p></div>`;
   }
 }
+
+/* ป้องกันการกดปุ่มบันทึก/ยืนยันซ้ำระหว่างรอเซิร์ฟเวอร์ */
+(function installActionGuards(){
+  const actionNames=[
+    'login','prepareBooking','startPreparedBooking','cancelPreparedBooking',
+    'startBooking','confirmCheckout','addBed','addEmployee','addService',
+    'confirmDeleteBed'
+  ];
+  const locks=new Set();
+
+  actionNames.forEach(name=>{
+    const original=window[name];
+    if(typeof original!=='function') return;
+
+    window[name]=function(...args){
+      if(locks.has(name)) return;
+      locks.add(name);
+
+      const button=document.activeElement && document.activeElement.tagName==='BUTTON'
+        ? document.activeElement
+        : null;
+      const oldText=button ? button.textContent : '';
+      if(button) {
+        button.disabled=true;
+        button.classList.add('loading');
+        button.setAttribute('aria-busy','true');
+      }
+
+      let result;
+      try {
+        result=original.apply(this,args);
+      } catch(error) {
+        locks.delete(name);
+        if(button) {
+          button.disabled=false;
+          button.classList.remove('loading');
+          button.removeAttribute('aria-busy');
+        }
+        throw error;
+      }
+
+      return Promise.resolve(result).finally(()=>{
+        locks.delete(name);
+        if(button && button.isConnected) {
+          button.disabled=false;
+          button.classList.remove('loading');
+          button.removeAttribute('aria-busy');
+          // ฟังก์ชันบางตัวเปลี่ยนข้อความปุ่มระหว่างทำงานอยู่แล้ว
+          if(!button.textContent.trim()) button.textContent=oldText;
+        }
+      });
+    };
+  });
+})();
 
 /* STARTUP */
 
