@@ -1625,33 +1625,14 @@ async function loadDashboardFinance() {
   host.innerHTML='<div class="empty">กำลังโหลดข้อมูล...</div>';
   try {
     const today=localDateKey();
-    const [report,payouts,payoutHistory,closeHistory]=await Promise.all([
-      api('report',{period:'day',dateKey:today}),
-      api('getPayouts',{dateKey:today}),
-      api('getPayoutHistory'),
-      api('getCloseHistory')
-    ]);
-    if(!report.ok) throw new Error(report.error||'โหลดรายงานไม่สำเร็จ');
-    if(!payouts.ok) throw new Error(payouts.error||'โหลดค่ามือไม่สำเร็จ');
-    const closed=(closeHistory.history||[]).find(x=>String(x.dateKey)===today);
+    const payouts=await api('getPayouts',{dateKey:today});
+    if(!payouts.ok) throw new Error(payouts.error||'โหลดสถานะค่ามือไม่สำเร็จ');
     host.innerHTML=`
-      <div class="report-grid">
-        <div class="report-card"><span>ยอดรับสุทธิวันนี้</span><strong>${money(report.total)}</strong></div>
-        <div class="report-card"><span>เงินสด</span><strong>${money(report.cash)}</strong></div>
-        <div class="report-card"><span>เงินโอน</span><strong>${money(report.transfer)}</strong></div>
-        <div class="report-card"><span>รายได้ร้าน</span><strong>${money(report.shop)}</strong></div>
-        <div class="report-card"><span>ค่ามือทั้งหมด</span><strong>${money(payouts.total)}</strong></div>
-        <div class="report-card"><span>ค่ามือค้างจ่าย</span><strong>${money(payouts.unpaid)}</strong></div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0">
-        <button class="btn btn-primary" onclick="payStaffForDate('${today}')" ${payouts.unpaid<=0?'disabled':''}>จ่ายค่ามือวันนี้ · ${money(payouts.unpaid)}</button>
-        <button class="btn ${closed?'btn-light':'btn-primary'}" onclick="closeToday()">${closed?'ปิดยอดแล้ว · บันทึกซ้ำ':'ปิดยอดวันนี้'}</button>
-        <button class="btn btn-light" onclick="showPayoutHistory()">ดูประวัติค่ามือย้อนหลัง</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
+        <button class="btn btn-primary" onclick="closeToday()">ปิดยอดวันนี้</button>
+        <button class="btn btn-primary" onclick="payStaffForDate('${today}')" ${Number(payouts.unpaid||0)<=0?'disabled':''}>จ่ายค่ามือวันนี้</button>
         <button class="btn btn-light" onclick="showClosingHistory()">ดูประวัติปิดยอด</button>
       </div>
-      <div style="font-weight:600;margin:10px 0">รายละเอียดค่ามือวันนี้</div>
-      ${payouts.rows&&payouts.rows.length?`<div style="overflow-x:auto"><table><thead><tr><th>พนักงาน</th><th>จำนวนรายการ</th><th>ค่ามือ</th><th>สถานะ</th></tr></thead><tbody>${payouts.rows.map(x=>`<tr><td>${escapeHTML(x.employeeName)}</td><td>${Number(x.count||0)}</td><td>${money(x.amount)}</td><td>${x.status==='จ่ายแล้ว'?'<span class="status status-free">จ่ายแล้ว</span>':'<span class="status status-prepared">ค้างจ่าย</span>'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">วันนี้ยังไม่มีรายการค่ามือที่เกิดจากการชำระเงิน</div>'}
-      <div id="financeHistoryPanel" style="margin-top:18px"></div>
     `;
   } catch(err) {
     host.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p><button class="btn btn-light" onclick="loadDashboardFinance()">ลองอีกครั้ง</button></div>`;
@@ -2631,11 +2612,9 @@ async function renderReport() {
         <div class="report-card"><span>รับเงินโอน</span><strong>${money(r.transfer)}</strong></div>
       </div>
       <div class="panel" style="margin-top:18px;padding:20px">
-        <div class="section-head" style="margin-bottom:14px">
-          <div><h2>สรุปยอดและค่ามือวันนี้</h2><p>จัดการปิดยอด จ่ายค่ามือ และตรวจสอบประวัติย้อนหลัง</p></div>
-          <button class="btn btn-light" onclick="loadDashboardFinance()">↻ รีเฟรช</button>
+        <div id="reportFinance" style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="empty">กำลังเตรียมปุ่มจัดการประจำวัน...</div>
         </div>
-        <div id="reportFinance"><div class="empty">กำลังโหลดข้อมูลยอดวันนี้...</div></div>
       </div>
       <div class="panel" style="margin-top:18px">
         <div class="section-head" style="margin-bottom:12px"><div><h3>รายละเอียดลูกค้าที่มาใช้บริการ</h3><p>แสดงเฉพาะรายการที่ชำระเงินแล้วในช่วงเวลาที่เลือก</p></div><b>${Number(r.count||0)} รายการ</b></div>
