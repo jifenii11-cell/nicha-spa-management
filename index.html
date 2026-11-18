@@ -925,18 +925,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .staff-picker-trigger:hover { border-color:var(--gold); background:#fffdf7; }
 .staff-picker-trigger.selected { border-color:#b8d8bd; background:#f1f8f1; font-weight:500; }
 .employee-picker-modal { max-width:560px; }
-
-.member-picker-modal { max-width:620px; }
-.member-search { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:11px;font:inherit;margin:0 0 12px; }
-.member-picker-list { display:grid;gap:9px;max-height:55vh;overflow:auto; }
-.member-picker-item { width:100%;text-align:left;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer; }
-.member-picker-item:hover { border-color:var(--gold);background:#fffdf7; }
-.member-picker-item strong { color:var(--green);font-size:14px; }
-.member-picker-meta { color:var(--muted);font-size:12px;line-height:1.7;margin-top:4px; }
-.member-picker-status { display:inline-block;padding:2px 8px;border-radius:20px;background:#edf4ed;color:#287044;font-size:11px;margin-left:6px; }
-.member-picker-empty { padding:20px;text-align:center;color:var(--muted);background:#f7f7f2;border-radius:12px; }
-.member-selected-note { color:var(--muted);font-size:11px;margin-top:5px; }
-
 .employee-picker-hint { margin:-8px 0 14px; color:var(--muted); font-size:12px; }
 .employee-picker-list {
   display:grid;
@@ -1151,8 +1139,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <div class="field">
         <label>ชื่อลูกค้า</label>
         <input id="customerName" placeholder="ชื่อลูกค้า">
-        <input id="memberLineUserId" type="hidden" value="">
-        <div id="memberSelectedNote" class="member-selected-note"></div>
       </div>
 
       <div class="field full">
@@ -1184,19 +1170,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="btn btn-primary" onclick="startBooking()">เริ่มนวดทันที</button>
       <button class="btn btn-light" onclick="closeModal()">ปิด</button>
     </div>
-  </div>
-</div>
-
-<div id="memberPickerModal" class="modal-backdrop hidden" style="z-index:80">
-  <div class="modal member-picker-modal">
-    <div class="modal-head">
-      <h2>เลือกลูกค้าประจำ</h2>
-      <button class="close" onclick="closeMemberPicker()">×</button>
-    </div>
-    <p class="employee-picker-hint">ค้นหาจากชื่อสมาชิกหรือเบอร์โทรศัพท์ · ข้อมูลจาก Nicha Cam Database</p>
-    <input id="memberSearch" class="member-search" placeholder="พิมพ์ชื่อหรือเบอร์โทรเพื่อค้นหา" oninput="renderMemberPicker()">
-    <div id="memberPickerList" class="member-picker-list"><div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div></div>
-    <div class="form-actions"><button class="btn btn-light" onclick="closeMemberPicker()">ปิด</button></div>
   </div>
 </div>
 
@@ -1319,8 +1292,7 @@ let state={
   employees:[],
   services:[],
   servicePayouts:{},
-  activeBookings:[],
-  members:[]
+  activeBookings:[]
 };
 
 let selectedPreparedBooking=null;
@@ -1330,20 +1302,73 @@ let checkoutBooking=null;
 let checkoutBed=null;
 let pendingDeleteBed=null;
 
-document.addEventListener('DOMContentLoaded',setupCustomerTypePicker);
+// API performance layer: รวมคำขอซ้ำ, cache เฉพาะข้อมูลอ่าน และกันการกดบันทึกซ้ำติดกัน
+const apiReadCache = new Map();
+const apiInFlight = new Map();
+const apiRecentWrites = new Map();
+const API_READ_TTL = {
+  report: 3500,
+  getPayouts: 3500,
+  getPayoutHistory: 8000,
+  getCloseHistory: 8000
+};
+const API_DEDUPE_WRITES = new Set([
+  'prepareBooking','startBooking','startPreparedBooking','cancelPreparedBooking',
+  'finishBooking','payPayouts','closeDay','deleteBed','saveBed','saveEmployee',
+  'saveServicePayouts','setServiceActive'
+]);
+
+function clearApiReadCache() {
+  apiReadCache.clear();
+}
 
 async function api(action,data={}) {
   const token=sessionStorage.getItem('nicha_token')||'';
+  const payload={action,token,...data};
+  const key=JSON.stringify(payload);
+  const now=Date.now();
+  const ttl=API_READ_TTL[action]||0;
 
-  const response=await fetch(API_URL,{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({action,token,...data})
-  });
+  if(ttl) {
+    const cached=apiReadCache.get(key);
+    if(cached && now-cached.time<ttl) return cached.value;
+  }
 
-  if(!response.ok) throw new Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+response.status);
+  if(apiInFlight.has(key)) return apiInFlight.get(key);
 
-  return await response.json();
+  if(API_DEDUPE_WRITES.has(action)) {
+    const recent=apiRecentWrites.get(key);
+    if(recent && now-recent.time<1400) return recent.value;
+  }
+
+  const request=(async()=>{
+    const response=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+
+    if(!response.ok) throw new Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+response.status);
+    const result=await response.json();
+
+    if(ttl && result && result.ok) {
+      apiReadCache.set(key,{time:Date.now(),value:result});
+    }
+
+    if(API_DEDUPE_WRITES.has(action) && result && result.ok) {
+      apiRecentWrites.set(key,{time:Date.now(),value:result});
+      clearApiReadCache();
+    }
+
+    return result;
+  })();
+
+  apiInFlight.set(key,request);
+  try {
+    return await request;
+  } finally {
+    if(apiInFlight.get(key)===request) apiInFlight.delete(key);
+  }
 }
 
 async function login() {
@@ -1392,6 +1417,18 @@ async function logout() {
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('pin').value='';
+}
+
+let activeBookingsRefreshPromise=null;
+async function refreshActiveBookings() {
+  if(activeBookingsRefreshPromise) return activeBookingsRefreshPromise;
+  activeBookingsRefreshPromise=(async()=>{
+    const result=await api('getActiveBookings');
+    if(!result.ok) throw new Error(result.error||'โหลดสถานะพนักงานไม่สำเร็จ');
+    state.activeBookings=result.bookings||[];
+    return state.activeBookings;
+  })().finally(()=>{activeBookingsRefreshPromise=null;});
+  return activeBookingsRefreshPromise;
 }
 
 async function refresh() {
@@ -1602,6 +1639,14 @@ function renderDashboard() {
       </button>
     </div>
 
+    <div class="panel" style="margin:20px 0;padding:20px">
+      <div class="section-head" style="margin-bottom:14px">
+        <div><h2>สรุปยอดและค่ามือวันนี้</h2><p>จัดการปิดยอดและจ่ายค่ามือประจำวัน</p></div>
+        <button class="btn btn-light" onclick="loadDashboardFinance()">↻ รีเฟรช</button>
+      </div>
+      <div id="dashboardFinance"><div class="empty">กำลังโหลดข้อมูลยอดวันนี้...</div></div>
+    </div>
+
     <div class="section-head">
       <div>
         <h2>สถานะเตียงและห้องบริการ</h2>
@@ -1614,6 +1659,97 @@ function renderDashboard() {
   `;
 
   updateBedTimers();
+  loadDashboardFinance();
+}
+
+/* DAILY CLOSING + STAFF PAYOUTS */
+function localDateKey(date=new Date()) {
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,'0');
+  const d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+async function loadDashboardFinance() {
+  const host=document.getElementById('dashboardFinance');
+  if(!host) return;
+  host.innerHTML='<div class="empty">กำลังโหลดข้อมูล...</div>';
+  try {
+    const today=localDateKey();
+    const [report,payouts,payoutHistory,closeHistory]=await Promise.all([
+      api('report',{period:'day',dateKey:today}),
+      api('getPayouts',{dateKey:today}),
+      api('getPayoutHistory'),
+      api('getCloseHistory')
+    ]);
+    if(!report.ok) throw new Error(report.error||'โหลดรายงานไม่สำเร็จ');
+    if(!payouts.ok) throw new Error(payouts.error||'โหลดค่ามือไม่สำเร็จ');
+    const closed=(closeHistory.history||[]).find(x=>String(x.dateKey)===today);
+    host.innerHTML=`
+      <div class="report-grid">
+        <div class="report-card"><span>ยอดรับสุทธิวันนี้</span><strong>${money(report.total)}</strong></div>
+        <div class="report-card"><span>เงินสด</span><strong>${money(report.cash)}</strong></div>
+        <div class="report-card"><span>เงินโอน</span><strong>${money(report.transfer)}</strong></div>
+        <div class="report-card"><span>รายได้ร้าน</span><strong>${money(report.shop)}</strong></div>
+        <div class="report-card"><span>ค่ามือทั้งหมด</span><strong>${money(payouts.total)}</strong></div>
+        <div class="report-card"><span>ค่ามือค้างจ่าย</span><strong>${money(payouts.unpaid)}</strong></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0">
+        <button class="btn btn-primary" onclick="payStaffForDate('${today}')" ${payouts.unpaid<=0?'disabled':''}>จ่ายค่ามือวันนี้ · ${money(payouts.unpaid)}</button>
+        <button class="btn ${closed?'btn-light':'btn-primary'}" onclick="closeToday()">${closed?'ปิดยอดแล้ว · บันทึกซ้ำ':'ปิดยอดวันนี้'}</button>
+        <button class="btn btn-light" onclick="showPayoutHistory()">ดูประวัติค่ามือย้อนหลัง</button>
+        <button class="btn btn-light" onclick="showClosingHistory()">ดูประวัติปิดยอด</button>
+      </div>
+      <div style="font-weight:600;margin:10px 0">รายละเอียดค่ามือวันนี้</div>
+      ${payouts.rows&&payouts.rows.length?`<div style="overflow-x:auto"><table><thead><tr><th>พนักงาน</th><th>จำนวนรายการ</th><th>ค่ามือ</th><th>สถานะ</th></tr></thead><tbody>${payouts.rows.map(x=>`<tr><td>${escapeHTML(x.employeeName)}</td><td>${Number(x.count||0)}</td><td>${money(x.amount)}</td><td>${x.status==='จ่ายแล้ว'?'<span class="status status-free">จ่ายแล้ว</span>':'<span class="status status-prepared">ค้างจ่าย</span>'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">วันนี้ยังไม่มีรายการค่ามือที่เกิดจากการชำระเงิน</div>'}
+      <div id="financeHistoryPanel" style="margin-top:18px"></div>
+    `;
+  } catch(err) {
+    host.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p><button class="btn btn-light" onclick="loadDashboardFinance()">ลองอีกครั้ง</button></div>`;
+  }
+}
+
+async function payStaffForDate(dateKey) {
+  if(!confirm(`ยืนยันจ่ายค่ามือที่ค้างจ่ายของวันที่ ${dateKey} ใช่หรือไม่?`)) return;
+  try {
+    const result=await api('payPayouts',{dateKey});
+    if(!result.ok) throw new Error(result.error||'บันทึกการจ่ายไม่สำเร็จ');
+    notify(`บันทึกจ่ายค่ามือ ${result.paidCount} คน รวม ${money(result.paidAmount)} แล้ว`);
+    await loadDashboardFinance();
+  } catch(err) { notify(err.message,'error'); }
+}
+
+async function closeToday() {
+  const today=localDateKey();
+  if(!confirm('ยืนยันปิดยอดรายรับของวันนี้ใช่หรือไม่? ระบบจะบันทึกยอดไว้ในประวัติ')) return;
+  try {
+    const result=await api('closeDay',{dateKey:today});
+    if(!result.ok) throw new Error(result.error||'ปิดยอดไม่สำเร็จ');
+    notify('บันทึกปิดยอดวันนี้เรียบร้อยแล้ว');
+    await loadDashboardFinance();
+  } catch(err) { notify(err.message,'error'); }
+}
+
+async function showPayoutHistory() {
+  const panel=document.getElementById('financeHistoryPanel');
+  if(!panel) return;
+  panel.innerHTML='<div class="empty">กำลังโหลดประวัติค่ามือ...</div>';
+  try {
+    const result=await api('getPayoutHistory');
+    if(!result.ok) throw new Error(result.error||'โหลดประวัติไม่สำเร็จ');
+    panel.innerHTML=`<h3 style="margin:0 0 10px">ประวัติค่ามือย้อนหลัง</h3>${result.history&&result.history.length?`<div style="overflow-x:auto"><table><thead><tr><th>วันที่</th><th>ค่ามือรวม</th><th>จ่ายแล้ว</th><th>ค้างจ่าย</th><th>จัดการ</th></tr></thead><tbody>${result.history.map(x=>`<tr><td>${escapeHTML(x.dateKey)}</td><td>${money(x.total)}</td><td>${money(x.paid)}</td><td>${money(x.unpaid)}</td><td>${Number(x.unpaid)>0?`<button class="btn btn-primary" onclick="payStaffForDate('${escapeHTML(x.dateKey)}')">จ่ายยอดค้าง</button>`:'<span class="status status-free">จ่ายครบแล้ว</span>'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">ยังไม่มีประวัติค่ามือ</div>'}`;
+  } catch(err) { panel.innerHTML=`<p style="color:var(--red)">${escapeHTML(err.message)}</p>`; }
+}
+
+async function showClosingHistory() {
+  const panel=document.getElementById('financeHistoryPanel');
+  if(!panel) return;
+  panel.innerHTML='<div class="empty">กำลังโหลดประวัติปิดยอด...</div>';
+  try {
+    const result=await api('getCloseHistory');
+    if(!result.ok) throw new Error(result.error||'โหลดประวัติปิดยอดไม่สำเร็จ');
+    panel.innerHTML=`<h3 style="margin:0 0 10px">ประวัติปิดยอดรายวัน</h3>${result.history&&result.history.length?`<div style="overflow-x:auto"><table><thead><tr><th>วันที่</th><th>ยอดสุทธิ</th><th>เงินสด</th><th>เงินโอน</th><th>รายได้ร้าน</th><th>ค่ามือ</th><th>เวลาปิดยอด</th></tr></thead><tbody>${result.history.map(x=>`<tr><td>${escapeHTML(x.dateKey)}</td><td>${money(x.net)}</td><td>${money(x.cash)}</td><td>${money(x.transfer)}</td><td>${money(x.shop)}</td><td>${money(x.staff)}</td><td>${x.closedAt?new Date(x.closedAt).toLocaleString('th-TH'): '-'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">ยังไม่มีประวัติปิดยอด</div>'}`;
+  } catch(err) { panel.innerHTML=`<p style="color:var(--red)">${escapeHTML(err.message)}</p>`; }
 }
 
 /* BED CARDS */
@@ -1971,91 +2107,6 @@ function buildGroupedServiceOptions(services) {
   `).join('');
 }
 
-let memberListCache=[];
-let memberLoading=false;
-
-function setupCustomerTypePicker() {
-  const select=document.getElementById('customerType');
-  if(select && !select.dataset.memberHandler) {
-    select.addEventListener('change', handleCustomerTypeChange);
-    select.dataset.memberHandler='1';
-  }
-}
-
-async function handleCustomerTypeChange() {
-  const type=document.getElementById('customerType').value;
-  const nameInput=document.getElementById('customerName');
-  const note=document.getElementById('memberSelectedNote');
-  if(type==='ลูกค้าประจำ') {
-    nameInput.readOnly=true;
-    nameInput.placeholder='กรุณาเลือกลูกค้าจากรายชื่อสมาชิก';
-    if(!document.getElementById('memberLineUserId').value) nameInput.value='';
-    note.textContent='';
-    await openMemberPicker();
-  } else {
-    nameInput.readOnly=false;
-    nameInput.placeholder='ชื่อลูกค้า';
-    document.getElementById('memberLineUserId').value='';
-    note.textContent='';
-  }
-}
-
-async function openMemberPicker() {
-  const modal=document.getElementById('memberPickerModal');
-  modal.classList.remove('hidden');
-  document.getElementById('memberSearch').value='';
-  document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div>';
-  if(memberListCache.length) renderMemberPicker();
-  if(memberLoading) return;
-  memberLoading=true;
-  try {
-    const result=await api('getMembers');
-    if(!result.ok) throw new Error(result.error||'โหลดรายชื่อสมาชิกไม่สำเร็จ');
-    memberListCache=result.members||[];
-    renderMemberPicker();
-  } catch(err) {
-    document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">'+escapeHTML(err.message)+'<br>กรุณาลองเปลี่ยนประเภทลูกค้าแล้วเลือกใหม่</div>';
-    notify(err.message,'error');
-  } finally { memberLoading=false; }
-}
-
-function renderMemberPicker() {
-  const query=String(document.getElementById('memberSearch').value||'').trim().toLowerCase();
-  const members=memberListCache.filter(m=>
-    String(m.name||'').toLowerCase().includes(query) || String(m.phone||'').toLowerCase().includes(query)
-  );
-  const list=document.getElementById('memberPickerList');
-  if(!members.length) {
-    list.innerHTML='<div class="member-picker-empty">ไม่พบสมาชิกที่ตรงกับคำค้นหา</div>';
-    return;
-  }
-  list.innerHTML=members.map((m,index)=>`
-    <button type="button" class="member-picker-item" onclick="selectMember(${index})">
-      <strong>${escapeHTML(m.name||'ไม่ระบุชื่อ')}</strong>
-      <span class="member-picker-status">${escapeHTML(m.status||'ไม่ระบุสถานะ')}</span>
-      <div class="member-picker-meta">
-        โทร. ${escapeHTML(m.phone||'-')} · ระดับ ${escapeHTML(m.level||'-')}<br>
-        แต้มคงเหลือ ${Number(m.points||0).toLocaleString('th-TH')} · แต้มสะสมตลอดชีพ ${Number(m.lifetimePoints||0).toLocaleString('th-TH')}<br>
-        สมัครเมื่อ ${escapeHTML(m.registerDate||'-')}
-      </div>
-    </button>`).join('');
-  // map visible list so selected index remains correct after search
-  window._nichaVisibleMembers=members;
-}
-
-function selectMember(index,lineUserId) {
-  const member=(window._nichaVisibleMembers||[])[index];
-  if(!member) return;
-  document.getElementById('customerName').value=member.name||'';
-  document.getElementById('memberLineUserId').value=member.lineUserId||lineUserId||'';
-  document.getElementById('memberSelectedNote').textContent=`สมาชิกระดับ ${member.level||'-'} · แต้มคงเหลือ ${Number(member.points||0).toLocaleString('th-TH')} แต้ม · สถานะ ${member.status||'ไม่ระบุ'}`;
-  closeMemberPicker();
-}
-
-function closeMemberPicker() {
-  document.getElementById('memberPickerModal').classList.add('hidden');
-}
-
 function openBooking(bed) {
   const employees=state.employees.filter(x=>active(x.active));
   const services=state.services.filter(x=>active(x.active));
@@ -2081,11 +2132,7 @@ function openBooking(bed) {
     buildGroupedServiceOptions(services);
 
   document.getElementById('customerName').value='';
-  document.getElementById('customerName').readOnly=false;
-  document.getElementById('memberLineUserId').value='';
-  document.getElementById('memberSelectedNote').textContent='';
   document.getElementById('customerType').value='ขาจร';
-  setupCustomerTypePicker();
   document.getElementById('bookingDiscount').value=0;
 
   updateBookingPrice();
@@ -2132,8 +2179,8 @@ function renderEmployeePickerList(containerId, selectable) {
 function openEmployeePicker() {
   renderEmployeePickerList('employeePickerList',true);
   document.getElementById('employeePickerModal').classList.remove('hidden');
-  // โหลดสถานะล่าสุดจากระบบแบบเบื้องหลัง โดยไม่ทำให้ Popup รอเปิด
-  refresh().then(()=>{
+  // โหลดเฉพาะรายการงานที่กำลังดำเนินอยู่ ไม่ดึงเตียง/บริการ/ค่ามือทั้งหมด
+  refreshActiveBookings().then(()=>{
     if(!document.getElementById('employeePickerModal').classList.contains('hidden')) {
       renderEmployeePickerList('employeePickerList',true);
     }
@@ -2143,8 +2190,8 @@ function openEmployeePicker() {
 function openDashboardStaffPicker() {
   renderDashboardStaffPicker();
   document.getElementById('dashboardStaffPickerModal').classList.remove('hidden');
-  // ดึงสถานะงานนวดล่าสุดทุกครั้งที่เปิด Popup
-  refresh().then(()=>{
+  // ดึงเฉพาะสถานะงานนวดล่าสุด ไม่โหลดข้อมูลทั้งระบบซ้ำ
+  refreshActiveBookings().then(()=>{
     if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) {
       renderDashboardStaffPicker();
     }
@@ -2192,14 +2239,12 @@ function closeModal() {
 
 function collectBookingForm() {
   const employeeId=document.getElementById('bookingEmployee').value;
-  if(document.getElementById('customerType').value==='ลูกค้าประจำ' && !document.getElementById('memberLineUserId').value) throw new Error('กรุณาเลือกลูกค้าประจำจากรายชื่อสมาชิก');
   if(!employeeId) throw new Error('กรุณาเลือกพนักงานนวด');
   if(getBusyEmployeeIds().has(String(employeeId))) throw new Error('พนักงานท่านนี้กำลังมีงาน กรุณาเลือกคนอื่น');
   return {
     bedId:document.getElementById('bookingBedId').value,
     customerType:document.getElementById('customerType').value,
     customerName:document.getElementById('customerName').value,
-    memberLineUserId:document.getElementById('memberLineUserId').value,
     employeeId,
     serviceId:document.getElementById('bookingService').value,
     price:Number(document.getElementById('bookingPrice').value),
@@ -2578,15 +2623,21 @@ function renderServices() {
 }
 
 async function toggleServiceActive(serviceId, enabled, control) {
-  if(control) control.disabled=true;
+  const service=(state.services||[]).find(x=>String(x.id)===String(serviceId));
+  const previous=service ? active(service.active) : !enabled;
+
+  // อัปเดตหน้าจอทันที ไม่รอ round-trip ไป Google Apps Script
+  if(service) service.active=!!enabled;
+  renderServices();
+
   try {
     const result=await api('setServiceActive',{serviceId,active:enabled});
     if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะบริการไม่สำเร็จ');
-    await refresh();
-    renderServices();
     notify(enabled?'เปิดใช้งานบริการแล้ว':'ปิดใช้งานบริการแล้ว');
+    refreshAfterAction();
   } catch(err) {
-    if(control) { control.checked=!enabled; control.disabled=false; }
+    if(service) service.active=previous;
+    renderServices();
     notify(err.message,'error');
   }
 }
