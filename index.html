@@ -428,6 +428,7 @@ td{
   position:fixed;
   bottom:25px;
   right:25px;
+  max-width:min(420px,calc(100vw - 30px));
   background:var(--green);
   color:white;
   padding:13px 20px;
@@ -435,6 +436,12 @@ td{
   box-shadow:var(--shadow);
   z-index:100;
   font-size:13px;
+  animation:toastIn .22s ease-out;
+}
+.toast.toast-error{background:#a83f35}
+@keyframes toastIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
 }
 .loading{opacity:.6;pointer-events:none}
 
@@ -859,15 +866,19 @@ function escapeHTML(value) {
   })[char]);
 }
 
-function notify(message) {
+function notify(message, type = 'success') {
   const toast = document.getElementById('toast');
-  toast.textContent = message;
-  toast.classList.remove('hidden');
+  if (!toast) return;
+
+  toast.textContent = message || 'ดำเนินการเรียบร้อย';
+  toast.classList.remove('hidden', 'toast-error');
+  if (type === 'error') toast.classList.add('toast-error');
 
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.add('hidden');
-  }, 2800);
+    toast.classList.remove('toast-error');
+  }, 3000);
 }
 
 function todayText() {
@@ -1124,7 +1135,7 @@ async function startBooking() {
     notify('เริ่มงานนวดเรียบร้อยแล้ว');
 
   } catch (err) {
-    alert(err.message);
+    notify(err.message, 'error');
   }
 }
 
@@ -1174,7 +1185,7 @@ async function finishBookingForBed(bed) {
     updateCashChange();
     document.getElementById('checkoutModal').classList.remove('hidden');
   } catch (err) {
-    alert(err.message);
+    notify(err.message, 'error');
   }
 }
 
@@ -1215,7 +1226,7 @@ async function confirmCheckout() {
   const net = Number(checkoutBooking.net || 0);
   const received = method === 'เงินสด' ? Number(document.getElementById('cashReceived').value || 0) : net;
   if (method === 'เงินสด' && received < net) {
-    alert('จำนวนเงินสดที่รับยังไม่ครบยอดชำระ');
+    notify('จำนวนเงินสดที่รับยังไม่ครบยอดชำระ', 'error');
     return;
   }
   const button = document.getElementById('confirmCheckoutBtn');
@@ -1232,7 +1243,7 @@ async function confirmCheckout() {
     showPage(currentPage);
     notify('รับชำระเงินและจบงานเรียบร้อยแล้ว');
   } catch (err) {
-    alert(err.message);
+    notify(err.message, 'error');
   } finally {
     button.disabled = false; button.textContent = 'ยืนยันรับชำระและจบงาน';
   }
@@ -1344,7 +1355,7 @@ async function addEmployee() {
     notify('เพิ่มพนักงานเรียบร้อย');
 
   } catch (err) {
-    alert(err.message);
+    notify(err.message, 'error');
   }
 }
 
@@ -1430,7 +1441,7 @@ async function addService() {
     notify('เพิ่มบริการเรียบร้อย');
 
   } catch (err) {
-    alert(err.message);
+    notify(err.message, 'error');
   }
 }
 
