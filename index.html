@@ -1519,6 +1519,28 @@ document.getElementById('pin').addEventListener('keydown', event => {
   if (event.key === 'Enter') login();
 });
 
+
+// Spacebar: ใส่ยอดเงินสดให้พอดีกับยอดสุทธิ เฉพาะตอนเปิดหน้าต่าง Checkout
+document.addEventListener('keydown', event => {
+  const modal = document.getElementById('checkoutModal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  if (event.code !== 'Space' && event.key !== ' ') return;
+  if (event.repeat) return;
+
+  const cashMethod = document.querySelector('input[name="paymentMethod"][value="เงินสด"]');
+  if (!cashMethod || !cashMethod.checked) return;
+
+  // ป้องกัน Spacebar ทำให้หน้าเว็บเลื่อน
+  event.preventDefault();
+
+  if (!checkoutBooking) return;
+  const cashInput = document.getElementById('cashReceived');
+  if (!cashInput) return;
+
+  cashInput.value = Number(checkoutBooking.net || 0).toFixed(2);
+  updateCashChange();
+});
+
 todayText();
 </script>
 
