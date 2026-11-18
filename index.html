@@ -1087,7 +1087,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
     <div class="side-label">MAIN MENU</div>
 
     <nav>
-      <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-icon">▦</span>ภาพรวม</button>
+      <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-icon">▦</span>หน้าร้าน</button>
       <button class="nav-btn" data-page="beds" onclick="showPage('beds')"><span class="nav-icon">▤</span>จัดการเตียง</button>
       <button class="nav-btn" data-page="staff" onclick="showPage('staff')"><span class="nav-icon">♙</span>พนักงาน</button>
       <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
@@ -1100,7 +1100,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
   <main class="main">
     <header class="topbar">
       <div class="top-title">
-        <h1 id="pageTitle">ภาพรวมร้าน</h1>
+        <h1 id="pageTitle">หน้าร้าน</h1>
         <p>ระบบบริหารจัดการ ณิชา นวดเพื่อสุขภาพ</p>
       </div>
       <div class="top-right">
@@ -1420,7 +1420,7 @@ function showPage(page) {
   });
 
   const titles={
-    dashboard:'ภาพรวมร้าน',
+    dashboard:'หน้าร้าน',
     beds:'จัดการเตียง',
     staff:'จัดการพนักงาน',
     services:'เมนูบริการ',
@@ -1906,6 +1906,41 @@ function clickBed(id) {
   openBooking(bed);
 }
 
+function getServiceCategory(service) {
+  const explicit=service.category||service.group||service.type;
+  if(explicit) return String(explicit).trim();
+
+  const name=String(service.name||'').toLowerCase();
+
+  if(/นวดไทย|ไทยผ่อนคลาย|แผนไทย|รีดเส้น/.test(name)) return 'นวดไทย';
+  if(/น้ำมัน|ออยล์|oil|อโรม่า|aroma|sports massage|deep tissue/.test(name)) return 'นวดน้ำมัน';
+  if(/ฝ่าเท้า|นวดเท้า|foot/.test(name)) return 'นวดเท้า';
+  if(/ประคบ|หินร้อน|hot stone|สมุนไพร/.test(name)) return 'ประคบสมุนไพรและหินร้อน';
+  if(/หน้า|facial|สครับ|ผิว|spa/.test(name)) return 'สปาและดูแลผิวหน้า';
+
+  return 'บริการอื่น ๆ';
+}
+
+function buildGroupedServiceOptions(services) {
+  const groups=new Map();
+
+  services.forEach(service=>{
+    const category=getServiceCategory(service);
+    if(!groups.has(category)) groups.set(category,[]);
+    groups.get(category).push(service);
+  });
+
+  return Array.from(groups.entries()).map(([category,items])=>`
+    <optgroup label="${escapeHTML(category)}">
+      ${items.map(x=>`
+        <option value="${escapeHTML(x.id)}" data-price="${Number(x.price)}">
+          ${escapeHTML(x.name)} · ${Number(x.minutes)} นาที · ${money(x.price)}
+        </option>
+      `).join('')}
+    </optgroup>
+  `).join('');
+}
+
 function openBooking(bed) {
   const employees=state.employees.filter(x=>active(x.active));
   const services=state.services.filter(x=>active(x.active));
@@ -1928,11 +1963,7 @@ function openBooking(bed) {
   document.getElementById('bookingEmployeeButton').classList.remove('selected');
 
   document.getElementById('bookingService').innerHTML=
-    services.map(x=>`
-      <option value="${escapeHTML(x.id)}" data-price="${Number(x.price)}">
-        ${escapeHTML(x.name)} · ${x.minutes} นาที · ${money(x.price)}
-      </option>
-    `).join('');
+    buildGroupedServiceOptions(services);
 
   document.getElementById('customerName').value='';
   document.getElementById('customerType').value='ขาจร';
@@ -2421,21 +2452,7 @@ function renderServices() {
       </table>
     </div>
 
-    <div class="section-head">
-      <div><h2>เพิ่มบริการใหม่</h2><p>เพิ่มคอร์สนวดและกำหนดราคา</p></div>
-    </div>
 
-    <div class="panel">
-      <div class="form-grid">
-        <div class="field full"><label>ชื่อบริการ</label><input id="serviceName" placeholder="เช่น นวดไทยผ่อนคลาย"></div>
-        <div class="field"><label>ระยะเวลา (นาที)</label><input id="serviceMinutes" type="number" placeholder="60"></div>
-        <div class="field"><label>ราคา (บาท)</label><input id="servicePrice" type="number" placeholder="300"></div>
-      </div>
-
-      <div class="form-actions">
-        <button class="btn btn-primary" onclick="addService()">+ บันทึกบริการ</button>
-      </div>
-    </div>
   `;
 }
 
@@ -2453,25 +2470,6 @@ async function toggleServiceActive(serviceId, enabled, control) {
   }
 }
 
-async function addService() {
-  const service={
-    name:document.getElementById('serviceName').value,
-    minutes:Number(document.getElementById('serviceMinutes').value),
-    price:Number(document.getElementById('servicePrice').value)
-  };
-
-  try {
-    const result=await api('saveService',{service});
-
-    if(!result.ok) throw new Error(result.error);
-
-    refreshAfterAction();
-    notify('บันทึกเพิ่มบริการแล้ว กำลังอัปเดตข้อมูล');
-
-  } catch(err) {
-    notify(err.message,'error');
-  }
-}
 
 /* REPORT */
 
@@ -2531,7 +2529,7 @@ async function renderReport() {
 (function installActionGuards(){
   const actionNames=[
     'login','prepareBooking','startPreparedBooking','cancelPreparedBooking',
-    'startBooking','confirmCheckout','addBed','addEmployee','addService',
+    'startBooking','confirmCheckout','addBed','addEmployee',
     'confirmDeleteBed'
   ];
   const locks=new Set();
