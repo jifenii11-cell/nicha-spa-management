@@ -468,6 +468,34 @@ td{
 @media(max-width:380px){
   .bed-grid{grid-template-columns:1fr}
 }
+
+
+/* NICHA SPA - BED STATUS COLORS */
+.bed-card.bed-card-free {
+  background: #ffffff !important;
+  color: #374151 !important;
+  border: 1px solid #e5e8df !important;
+}
+.bed-card.bed-card-busy {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border: 1px solid #15803d !important;
+  box-shadow: 0 8px 24px rgba(22, 163, 74, .22);
+}
+.bed-card.bed-card-busy:hover {
+  border-color: #15803d !important;
+}
+.bed-card.bed-card-busy .bed-name,
+.bed-card.bed-card-busy .bed-area,
+.bed-card.bed-card-busy .bed-action {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.35) !important;
+}
+.bed-card.bed-card-busy .status-busy {
+  background: #ffffff !important;
+  color: #15803d !important;
+}
+
 </style>
 </head>
 
@@ -891,7 +919,7 @@ function bedCards(beds) {
         const busy = bed.status !== 'ว่าง';
 
         return `
-          <div class="bed-card" onclick="clickBed('${escapeHTML(bed.id)}')">
+          <div class="bed-card ${busy ? 'bed-card-busy' : 'bed-card-free'}" onclick="clickBed('${escapeHTML(bed.id)}')">
             <div class="bed-top">
               <div>
                 <div class="bed-name">${escapeHTML(bed.name)}</div>
