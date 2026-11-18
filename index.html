@@ -1462,14 +1462,17 @@ function bedCards(beds) {
     return '<div class="panel empty">ยังไม่มีข้อมูลเตียง</div>';
   }
 
+  // สร้างดัชนีรายการจองครั้งเดียว แทนการค้นหารายการจองใหม่ทุกเตียง
+  const bookingByBed=new Map();
+  for(const booking of state.activeBookings||[]) {
+    if(booking.status==='กำลังนวด') bookingByBed.set(String(booking.bedId),booking);
+  }
+
   return `<div class="bed-grid">${beds.map(bed=>{
     const prepared=bed.status==='เตรียมไว้';
     const busy=bed.status==='กำลังนวด';
 
-    const booking=state.activeBookings.find(x=>
-      String(x.bedId)===String(bed.id) &&
-      x.status==='กำลังนวด'
-    );
+    const booking=bookingByBed.get(String(bed.id));
 
     const remaining=busy ? getRemainingTime(booking) : null;
 
@@ -1526,42 +1529,40 @@ function bedCards(beds) {
 /* UPDATE TIMER EVERY SECOND */
 
 function updateBedTimers() {
-  document.querySelectorAll('[data-bed-timer]').forEach(element=>{
-    const bedId=element.dataset.bedTimer;
+  // ไม่ทำงานเบื้องหลังเมื่อไม่ได้อยู่หน้า Dashboard
+  if(currentPage!=='dashboard' || document.hidden) return;
 
-    const booking=state.activeBookings.find(x=>
-      String(x.bedId)===String(bedId) &&
-      x.status==='กำลังนวด'
-    );
+  const elements=document.querySelectorAll('[data-bed-timer]');
+  if(!elements.length) return;
 
+  // O(จำนวนรายการจอง + จำนวนเตียง) แทนการ find ซ้ำในทุกเตียงทุกวินาที
+  const bookingByBed=new Map();
+  for(const booking of state.activeBookings||[]) {
+    if(booking.status==='กำลังนวด') bookingByBed.set(String(booking.bedId),booking);
+  }
+
+  elements.forEach(element=>{
+    const booking=bookingByBed.get(String(element.dataset.bedTimer));
     if(!booking) return;
 
     const remaining=getRemainingTime(booking);
+    const value=remaining===null ? '--:--:--' : formatRemaining(remaining);
 
-    if(remaining===null) {
-      element.textContent='--:--:--';
-      return;
+    // เขียน DOM เฉพาะเมื่อค่าที่แสดงเปลี่ยนจริง
+    if(element.textContent!==value) element.textContent=value;
+
+    const warning=remaining>0 && remaining<=600;
+    const expired=remaining!==null && remaining<=0;
+    if(element.classList.contains('timer-warning')!==warning) {
+      element.classList.toggle('timer-warning',warning);
     }
-
-    element.textContent=formatRemaining(remaining);
-
-    element.classList.toggle(
-      'timer-warning',
-      remaining>0 && remaining<=600
-    );
-
-    element.classList.toggle(
-      'timer-expired',
-      remaining<=0
-    );
+    if(element.classList.contains('timer-expired')!==expired) {
+      element.classList.toggle('timer-expired',expired);
+    }
 
     const label=element.parentElement.querySelector('.timer-label');
-
-    if(label) {
-      label.textContent=remaining<=0
-        ? 'หมดเวลาแล้ว'
-        : 'เวลาที่เหลือ';
-    }
+    const labelText=expired ? 'หมดเวลาแล้ว' : 'เวลาที่เหลือ';
+    if(label && label.textContent!==labelText) label.textContent=labelText;
   });
 }
 
@@ -2371,7 +2372,17 @@ document.addEventListener('keydown',event=>{
 });
 
 /* อัปเดตเวลาบนหน้าเว็บทุก 1 วินาที */
-setInterval(updateBedTimers,1000);
+// นาฬิกาอัปเดตเฉพาะหน้า Dashboard; เมื่อสลับแท็บจะหยุดงานที่ไม่จำเป็น
+let bedTimerInterval=setInterval(updateBedTimers,1000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) {
+    if(bedTimerInterval) clearInterval(bedTimerInterval);
+    bedTimerInterval=null;
+  } else if(!bedTimerInterval) {
+    updateBedTimers();
+    bedTimerInterval=setInterval(updateBedTimers,1000);
+  }
+});
 
 todayText();
 </script>
