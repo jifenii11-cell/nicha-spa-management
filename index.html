@@ -925,6 +925,18 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .staff-picker-trigger:hover { border-color:var(--gold); background:#fffdf7; }
 .staff-picker-trigger.selected { border-color:#b8d8bd; background:#f1f8f1; font-weight:500; }
 .employee-picker-modal { max-width:560px; }
+
+.member-picker-modal { max-width:620px; }
+.member-search { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:11px;font:inherit;margin:0 0 12px; }
+.member-picker-list { display:grid;gap:9px;max-height:55vh;overflow:auto; }
+.member-picker-item { width:100%;text-align:left;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer; }
+.member-picker-item:hover { border-color:var(--gold);background:#fffdf7; }
+.member-picker-item strong { color:var(--green);font-size:14px; }
+.member-picker-meta { color:var(--muted);font-size:12px;line-height:1.7;margin-top:4px; }
+.member-picker-status { display:inline-block;padding:2px 8px;border-radius:20px;background:#edf4ed;color:#287044;font-size:11px;margin-left:6px; }
+.member-picker-empty { padding:20px;text-align:center;color:var(--muted);background:#f7f7f2;border-radius:12px; }
+.member-selected-note { color:var(--muted);font-size:11px;margin-top:5px; }
+
 .employee-picker-hint { margin:-8px 0 14px; color:var(--muted); font-size:12px; }
 .employee-picker-list {
   display:grid;
@@ -1139,6 +1151,8 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <div class="field">
         <label>ชื่อลูกค้า</label>
         <input id="customerName" placeholder="ชื่อลูกค้า">
+        <input id="memberLineUserId" type="hidden" value="">
+        <div id="memberSelectedNote" class="member-selected-note"></div>
       </div>
 
       <div class="field full">
@@ -1170,6 +1184,19 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="btn btn-primary" onclick="startBooking()">เริ่มนวดทันที</button>
       <button class="btn btn-light" onclick="closeModal()">ปิด</button>
     </div>
+  </div>
+</div>
+
+<div id="memberPickerModal" class="modal-backdrop hidden" style="z-index:80">
+  <div class="modal member-picker-modal">
+    <div class="modal-head">
+      <h2>เลือกลูกค้าประจำ</h2>
+      <button class="close" onclick="closeMemberPicker()">×</button>
+    </div>
+    <p class="employee-picker-hint">ค้นหาจากชื่อสมาชิกหรือเบอร์โทรศัพท์ · ข้อมูลจาก Nicha Cam Database</p>
+    <input id="memberSearch" class="member-search" placeholder="พิมพ์ชื่อหรือเบอร์โทรเพื่อค้นหา" oninput="renderMemberPicker()">
+    <div id="memberPickerList" class="member-picker-list"><div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div></div>
+    <div class="form-actions"><button class="btn btn-light" onclick="closeMemberPicker()">ปิด</button></div>
   </div>
 </div>
 
@@ -1292,7 +1319,8 @@ let state={
   employees:[],
   services:[],
   servicePayouts:{},
-  activeBookings:[]
+  activeBookings:[],
+  members:[]
 };
 
 let selectedPreparedBooking=null;
@@ -1301,6 +1329,8 @@ let toastTimer=null;
 let checkoutBooking=null;
 let checkoutBed=null;
 let pendingDeleteBed=null;
+
+document.addEventListener('DOMContentLoaded',setupCustomerTypePicker);
 
 async function api(action,data={}) {
   const token=sessionStorage.getItem('nicha_token')||'';
@@ -1941,6 +1971,91 @@ function buildGroupedServiceOptions(services) {
   `).join('');
 }
 
+let memberListCache=[];
+let memberLoading=false;
+
+function setupCustomerTypePicker() {
+  const select=document.getElementById('customerType');
+  if(select && !select.dataset.memberHandler) {
+    select.addEventListener('change', handleCustomerTypeChange);
+    select.dataset.memberHandler='1';
+  }
+}
+
+async function handleCustomerTypeChange() {
+  const type=document.getElementById('customerType').value;
+  const nameInput=document.getElementById('customerName');
+  const note=document.getElementById('memberSelectedNote');
+  if(type==='ลูกค้าประจำ') {
+    nameInput.readOnly=true;
+    nameInput.placeholder='กรุณาเลือกลูกค้าจากรายชื่อสมาชิก';
+    if(!document.getElementById('memberLineUserId').value) nameInput.value='';
+    note.textContent='';
+    await openMemberPicker();
+  } else {
+    nameInput.readOnly=false;
+    nameInput.placeholder='ชื่อลูกค้า';
+    document.getElementById('memberLineUserId').value='';
+    note.textContent='';
+  }
+}
+
+async function openMemberPicker() {
+  const modal=document.getElementById('memberPickerModal');
+  modal.classList.remove('hidden');
+  document.getElementById('memberSearch').value='';
+  document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div>';
+  if(memberListCache.length) renderMemberPicker();
+  if(memberLoading) return;
+  memberLoading=true;
+  try {
+    const result=await api('getMembers');
+    if(!result.ok) throw new Error(result.error||'โหลดรายชื่อสมาชิกไม่สำเร็จ');
+    memberListCache=result.members||[];
+    renderMemberPicker();
+  } catch(err) {
+    document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">'+escapeHTML(err.message)+'<br>กรุณาลองเปลี่ยนประเภทลูกค้าแล้วเลือกใหม่</div>';
+    notify(err.message,'error');
+  } finally { memberLoading=false; }
+}
+
+function renderMemberPicker() {
+  const query=String(document.getElementById('memberSearch').value||'').trim().toLowerCase();
+  const members=memberListCache.filter(m=>
+    String(m.name||'').toLowerCase().includes(query) || String(m.phone||'').toLowerCase().includes(query)
+  );
+  const list=document.getElementById('memberPickerList');
+  if(!members.length) {
+    list.innerHTML='<div class="member-picker-empty">ไม่พบสมาชิกที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  list.innerHTML=members.map((m,index)=>`
+    <button type="button" class="member-picker-item" onclick="selectMember(${index})">
+      <strong>${escapeHTML(m.name||'ไม่ระบุชื่อ')}</strong>
+      <span class="member-picker-status">${escapeHTML(m.status||'ไม่ระบุสถานะ')}</span>
+      <div class="member-picker-meta">
+        โทร. ${escapeHTML(m.phone||'-')} · ระดับ ${escapeHTML(m.level||'-')}<br>
+        แต้มคงเหลือ ${Number(m.points||0).toLocaleString('th-TH')} · แต้มสะสมตลอดชีพ ${Number(m.lifetimePoints||0).toLocaleString('th-TH')}<br>
+        สมัครเมื่อ ${escapeHTML(m.registerDate||'-')}
+      </div>
+    </button>`).join('');
+  // map visible list so selected index remains correct after search
+  window._nichaVisibleMembers=members;
+}
+
+function selectMember(index,lineUserId) {
+  const member=(window._nichaVisibleMembers||[])[index];
+  if(!member) return;
+  document.getElementById('customerName').value=member.name||'';
+  document.getElementById('memberLineUserId').value=member.lineUserId||lineUserId||'';
+  document.getElementById('memberSelectedNote').textContent=`สมาชิกระดับ ${member.level||'-'} · แต้มคงเหลือ ${Number(member.points||0).toLocaleString('th-TH')} แต้ม · สถานะ ${member.status||'ไม่ระบุ'}`;
+  closeMemberPicker();
+}
+
+function closeMemberPicker() {
+  document.getElementById('memberPickerModal').classList.add('hidden');
+}
+
 function openBooking(bed) {
   const employees=state.employees.filter(x=>active(x.active));
   const services=state.services.filter(x=>active(x.active));
@@ -1966,7 +2081,11 @@ function openBooking(bed) {
     buildGroupedServiceOptions(services);
 
   document.getElementById('customerName').value='';
+  document.getElementById('customerName').readOnly=false;
+  document.getElementById('memberLineUserId').value='';
+  document.getElementById('memberSelectedNote').textContent='';
   document.getElementById('customerType').value='ขาจร';
+  setupCustomerTypePicker();
   document.getElementById('bookingDiscount').value=0;
 
   updateBookingPrice();
@@ -2073,12 +2192,14 @@ function closeModal() {
 
 function collectBookingForm() {
   const employeeId=document.getElementById('bookingEmployee').value;
+  if(document.getElementById('customerType').value==='ลูกค้าประจำ' && !document.getElementById('memberLineUserId').value) throw new Error('กรุณาเลือกลูกค้าประจำจากรายชื่อสมาชิก');
   if(!employeeId) throw new Error('กรุณาเลือกพนักงานนวด');
   if(getBusyEmployeeIds().has(String(employeeId))) throw new Error('พนักงานท่านนี้กำลังมีงาน กรุณาเลือกคนอื่น');
   return {
     bedId:document.getElementById('bookingBedId').value,
     customerType:document.getElementById('customerType').value,
     customerName:document.getElementById('customerName').value,
+    memberLineUserId:document.getElementById('memberLineUserId').value,
     employeeId,
     serviceId:document.getElementById('bookingService').value,
     price:Number(document.getElementById('bookingPrice').value),
