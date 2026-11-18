@@ -177,25 +177,17 @@ function renderBeds() {
         const isBusy = bed.status === 'กำลังนวด';
 
         return `
+          <div
+            class="tile bed-tile ${isBusy ? 'bed-busy' : ''}"
+            style="cursor:pointer"
+            onclick="openBed('${escapeHTML(bed.id)}')"
+          >
 
-          <div class="tile bed-tile"
-               style="
-                 cursor:pointer;
-                 border:2px solid ${isBusy ? '#16a34a' : '#d1d5db'};
-                 background:${isBusy ? '#16a34a' : '#ffffff'};
-                 color:${isBusy ? '#ffffff' : '#374151'};
-                 transition:all .25s ease;
-                 border-radius:14px;
-               "
-               onclick="openBed('${escapeHTML(bed.id)}')">
-
-            <h2 style="color:inherit">
-              ${escapeHTML(bed.name)}
-            </h2>
+            <h2>${escapeHTML(bed.name)}</h2>
 
             <p>${escapeHTML(bed.area || '')}</p>
 
-            <span style="
+            <span class="bed-status" style="
               display:inline-block;
               padding:6px 14px;
               border-radius:20px;
@@ -206,12 +198,11 @@ function renderBeds() {
               ${isBusy ? 'กำลังนวด ✓' : 'ว่าง'}
             </span>
 
-            <p style="color:inherit">
+            <p>
               ${isBusy ? 'กดเพื่อดูงาน' : 'กดเพื่อรับลูกค้า'}
             </p>
 
           </div>
-
         `;
 
       }).join('')}
@@ -496,13 +487,6 @@ async function startBooking(bedId) {
 
     saveActiveBookings(active);
 
-    // เปลี่ยนปุ่มเป็นสีเขียวเมื่อเริ่มงานสำเร็จ
-    if (button) {
-      button.style.background = '#16a34a';
-      button.style.color = '#ffffff';
-      button.textContent = 'กำลังนวด ✓';
-    }
-
     alert('เริ่มงานนวดเรียบร้อยแล้ว');
 
     await refresh();
@@ -533,16 +517,9 @@ function showBusyBed(bed) {
 
   content.innerHTML = `
 
-    <div class="tile"
-         style="
-           border:2px solid #16a34a;
-           background:#16a34a;
-           color:#ffffff;
-         ">
+    <div class="tile bed-tile bed-busy">
 
-      <h2 style="color:#ffffff">
-        ${escapeHTML(bed.name)}
-      </h2>
+      <h2>${escapeHTML(bed.name)}</h2>
 
       <p>
         สถานะ:
@@ -630,7 +607,6 @@ async function finishBooking(bedId) {
 
     await refresh();
 
-    // โหลดเตียงใหม่ สีเขียวจะกลับเป็นสีขาว
     show('beds');
 
   } catch (error) {
