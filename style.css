@@ -1,6 +1,166 @@
-*{box-sizing:border-box}body{margin:0;background:#f5f1e7;color:#25382e;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:980px;margin:auto;padding:24px}header{text-align:center;padding:26px 0 34px}.brand{font-size:34px;letter-spacing:5px;font-weight:800;color:#244c3b}.brand span{color:#b18a43}header small,footer{color:#7d806f}.panel{background:#fffdf8;border:1px solid #e5dcc8;border-radius:18px;padding:22px;margin:14px 0;box-shadow:0 8px 24px #34452a0b}h1,h2{margin-top:0}input,select{width:100%;padding:13px;border:1px solid #d8d0bd;border-radius:10px;margin:7px 0 13px;background:white;font:inherit}button{background:#315a45;color:white;border:0;border-radius:10px;padding:12px 16px;margin:4px;cursor:pointer;font:inherit}button:hover{background:#244333}nav{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}.msg{color:#a33}.muted{color:#777}.tile{border:1px solid #e5dcc8;border-radius:12px;padding:14px;margin:8px 0;background:#fff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.gold{color:#a47b31;font-weight:700}footer{text-align:center;padding:28px;font-size:12px}[hidden]{display:none!important}
 
-/* NICHA SPA - สีสถานะเตียง */
+/****************************************************
+ * NICHA SPA
+ * Premium Green & Gold Theme
+ * Responsive Design
+ ****************************************************/
+
+/* ---------------- GLOBAL ---------------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #f5f1e7;
+  color: #25382e;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.6;
+}
+
+/* ---------------- LAYOUT ---------------- */
+
+.wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: auto;
+  padding: 24px;
+}
+
+/* ---------------- HEADER ---------------- */
+
+header {
+  text-align: center;
+  padding: 26px 0 34px;
+}
+
+.brand {
+  font-size: 34px;
+  letter-spacing: 5px;
+  font-weight: 800;
+  color: #244c3b;
+}
+
+.brand span {
+  color: #b18a43;
+}
+
+header small,
+footer {
+  color: #7d806f;
+}
+
+/* ---------------- HEADINGS ---------------- */
+
+h1,
+h2,
+h3 {
+  color: #244c3b;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 23px;
+}
+
+h3 {
+  font-size: 19px;
+  margin-top: 24px;
+}
+
+/* ---------------- PANELS ---------------- */
+
+.panel {
+  background: #fffdf8;
+  border: 1px solid #e5dcc8;
+  border-radius: 18px;
+  padding: 22px;
+  margin: 14px 0;
+  box-shadow: 0 8px 24px #34452a0b;
+}
+
+/* ---------------- INPUTS ---------------- */
+
+input,
+select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #d8d0bd;
+  border-radius: 10px;
+  margin: 7px 0 13px;
+  background: #ffffff;
+  color: #25382e;
+  font: inherit;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #b18a43;
+  box-shadow: 0 0 0 3px #b18a4320;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  color: #315a45;
+}
+
+/* ---------------- BUTTONS ---------------- */
+
+button {
+  background: #315a45;
+  color: #ffffff;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 4px;
+  cursor: pointer;
+  font: inherit;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #244333;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---------------- NAVIGATION ---------------- */
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+/* ---------------- MESSAGES ---------------- */
+
+.msg {
+  color: #a33;
+}
+
+.muted {
+  color: #777;
+}
+
+/* ---------------- TILE ---------------- */
+
 .tile {
   border: 1px solid #e5dcc8;
   border-radius: 12px;
@@ -8,39 +168,134 @@
   margin: 8px 0;
   background: #ffffff;
   color: #374151;
-  transition: background 0.25s ease, color 0.25s ease;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
 }
 
-.tile.bed-busy {
-  background: #16a34a !important;
-  color: #ffffff !important;
-  border: 1px solid #15803d !important;
-}
+/* ---------------- BED TILES ---------------- */
 
-.tile.bed-busy * {
-  color: #ffffff !important;
-}
+/* เตียงว่าง */
 
-/* NICHA SPA - BED STATUS */
 .tile.bed-tile {
   background: #ffffff !important;
   color: #374151 !important;
   border: 2px solid #d1d5db !important;
-  transition: all 0.25s ease;
+  cursor: pointer;
 }
+
+/* เตียงกำลังนวด */
 
 .tile.bed-tile.bed-busy {
   background: #16a34a !important;
   color: #ffffff !important;
   border: 2px solid #15803d !important;
+  box-shadow: 0 5px 16px #16a34a30;
 }
 
+/* ข้อความบนเตียงกำลังนวด */
+
 .tile.bed-tile.bed-busy h2,
-.tile.bed-tile.bed-busy p {
+.tile.bed-tile.bed-busy h3,
+.tile.bed-tile.bed-busy p,
+.tile.bed-tile.bed-busy small,
+.tile.bed-tile.bed-busy b {
   color: #ffffff !important;
+}
+
+/* ป้ายสถานะเตียง */
+
+.tile.bed-tile .bed-status {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
 }
 
 .tile.bed-tile.bed-busy .bed-status {
   background: #ffffff !important;
   color: #15803d !important;
+}
+
+/* ---------------- GRID ---------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+/* ---------------- GOLD ---------------- */
+
+.gold {
+  color: #a47b31;
+  font-weight: 700;
+}
+
+/* ---------------- FOOTER ---------------- */
+
+footer {
+  text-align: center;
+  padding: 28px;
+  font-size: 12px;
+}
+
+/* ---------------- HIDDEN ---------------- */
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+
+@media (max-width: 768px) {
+
+  .wrap {
+    padding: 14px;
+  }
+
+  header {
+    padding: 20px 0 25px;
+  }
+
+  .brand {
+    font-size: 27px;
+    letter-spacing: 3px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .grid {
+    grid-template-columns:
+      repeat(auto-fit, minmax(145px, 1fr));
+  }
+
+  button {
+    padding: 11px 13px;
+  }
+}
+
+@media (max-width: 400px) {
+
+  .brand {
+    font-size: 23px;
+    letter-spacing: 2px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .tile {
+    padding: 11px;
+  }
+
+  h2 {
+    font-size: 19px;
+  }
 }
