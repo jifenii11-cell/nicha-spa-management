@@ -1044,6 +1044,20 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .staff-form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
 @media(max-width:620px){.payout-row{grid-template-columns:1fr auto;gap:8px}.payout-service{grid-column:1/-1}.payout-value-wrap{grid-column:1/-1}.payout-mode{justify-self:start}}
 
+
+/* SERVICE ON/OFF SLIDING BAR */
+.service-switch{position:relative;display:inline-flex;width:68px;height:34px;vertical-align:middle;cursor:pointer;flex:none}
+.service-switch input{opacity:0;width:0;height:0;position:absolute}
+.service-switch-track{position:absolute;inset:0;border-radius:99px;background:#cbd5d1;cursor:pointer;transition:background .2s ease;box-shadow:inset 0 1px 2px #00000012}
+.service-switch-track:before{content:"";position:absolute;width:26px;height:26px;left:4px;top:4px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003;transition:transform .2s ease}
+.service-switch-track:after{content:"ปิด";position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;font-weight:700;color:#52615a;pointer-events:none}
+.service-switch input:checked + .service-switch-track{background:#23845d}
+.service-switch input:checked + .service-switch-track:before{transform:translateX(34px)}
+.service-switch input:checked + .service-switch-track:after{content:"เปิด";right:auto;left:8px;color:#fff}
+.service-switch input:focus-visible + .service-switch-track{outline:3px solid #23845d55;outline-offset:2px}
+.service-switch input:disabled + .service-switch-track{opacity:.55;cursor:wait}
+.service-status{font-size:12px;font-weight:600;margin-left:8px}
+.service-status.on{color:#23845d}.service-status.off{color:#9a6a36}
 </style>
 </head>
 
@@ -2381,21 +2395,28 @@ function renderStaff(){
 function renderServices() {
   document.getElementById('pageContent').innerHTML=`
     <div class="section-head">
-      <div><h2>เมนูบริการของร้าน</h2><p>จัดการรายการนวด เวลา และราคา</p></div>
+      <div><h2>เมนูบริการของร้าน</h2><p>เลื่อนสวิตช์เพื่อเปิดหรือปิดบริการที่ต้องการแสดงให้เลือกตอนรับลูกค้า</p></div>
     </div>
 
     <div class="panel table-wrap">
       <table>
-        <thead><tr><th>ชื่อบริการ</th><th>ระยะเวลา</th><th>ราคา</th><th>สถานะ</th></tr></thead>
+        <thead><tr><th>ชื่อบริการ</th><th>ระยะเวลา</th><th>ราคา</th><th>เปิด / ปิด</th></tr></thead>
         <tbody>
-          ${state.services.map(x=>`
-            <tr>
+          ${(state.services||[]).map(x=>{
+            const enabled=active(x.active);
+            return `<tr>
               <td>${escapeHTML(x.name)}</td>
-              <td>${x.minutes} นาที</td>
+              <td>${Number(x.minutes)} นาที</td>
               <td>${money(x.price)}</td>
-              <td>${active(x.active)?'เปิดใช้งาน':'ปิดใช้งาน'}</td>
-            </tr>
-          `).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีบริการ</td></tr>'}
+              <td style="white-space:nowrap">
+                <label class="service-switch" title="${enabled?'ปิดบริการ':'เปิดบริการ'}">
+                  <input type="checkbox" ${enabled?'checked':''} onchange="toggleServiceActive('${escapeHTML(x.id)}',this.checked,this)">
+                  <span class="service-switch-track"></span>
+                </label>
+                <span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span>
+              </td>
+            </tr>`;
+          }).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีบริการ</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -2416,6 +2437,20 @@ function renderServices() {
       </div>
     </div>
   `;
+}
+
+async function toggleServiceActive(serviceId, enabled, control) {
+  if(control) control.disabled=true;
+  try {
+    const result=await api('setServiceActive',{serviceId,active:enabled});
+    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะบริการไม่สำเร็จ');
+    await refresh();
+    renderServices();
+    notify(enabled?'เปิดใช้งานบริการแล้ว':'ปิดใช้งานบริการแล้ว');
+  } catch(err) {
+    if(control) { control.checked=!enabled; control.disabled=false; }
+    notify(err.message,'error');
+  }
 }
 
 async function addService() {
