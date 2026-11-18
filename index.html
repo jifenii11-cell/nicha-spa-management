@@ -1044,11 +1044,8 @@ function clickBed(id) {
   if (!bed) return;
 
   if (bed.status !== 'ว่าง') {
-    const choice = confirm(
-      bed.name + ' กำลังให้บริการอยู่\nต้องการปิดงานและคิดเงินหรือไม่?'
-    );
-
-    if (choice) finishBookingForBed(bed);
+    // เตียงที่กำลังให้บริการ: เปิดหน้าคิดเงินทันที โดยไม่แสดง confirm popup
+    finishBookingForBed(bed);
     return;
   }
 
