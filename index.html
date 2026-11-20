@@ -968,6 +968,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 }
 .employee-picker-item:disabled { opacity:1; }
 .employee-picker-name { font-weight:500; line-height:1.35; overflow-wrap:anywhere; }
+.employee-picker-phone{display:block;font-size:12px;color:var(--muted);margin-top:3px}
 .employee-picker-status {
   flex-shrink:0; padding:3px 9px; border-radius:20px;
   font-size:11px; background:#f2f4ef; color:#287044;
@@ -1081,6 +1082,41 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 /* NICHA CAM MEMBER DIRECTORY */
 .member-pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:20px;background:#f1f5ef;color:#365b43;font-size:11px;font-weight:600}
 @media(max-width:700px){#memberTotalCount,#memberFilteredCount{font-size:20px!important}.sidebar nav{overflow-x:auto;gap:2px}.nav-btn{min-width:58px}}
+
+
+
+/* Dashboard doctor directory: stronger contrast and clearer availability */
+#dashboardStaffPickerModal .employee-picker-modal{border:1px solid #d8e5dc;box-shadow:0 22px 60px rgba(10,40,25,.24)}
+#dashboardStaffPickerModal .employee-picker-hint{color:#52665a;font-weight:500}
+#dashboardStaffPickerModal .employee-picker-list{gap:11px}
+#dashboardStaffPickerModal .employee-picker-item{
+  min-height:112px;padding:13px 9px;border-radius:14px;
+  border-width:1.5px;box-shadow:0 3px 10px rgba(23,63,50,.08);
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+#dashboardStaffPickerModal .employee-picker-item.available{
+  background:#f0faf3;border-color:#80bd91;color:#174b30;
+}
+#dashboardStaffPickerModal .employee-picker-item.available:hover{
+  background:#e2f5e8;border-color:#23845d;box-shadow:0 5px 14px rgba(35,132,93,.16);transform:translateY(-1px);
+}
+#dashboardStaffPickerModal .employee-picker-item.unavailable{
+  background:#174b38;border-color:#0e3929;color:#fff;cursor:default;
+}
+#dashboardStaffPickerModal .employee-picker-name{font-size:14px;font-weight:700}
+#dashboardStaffPickerModal .employee-picker-phone{
+  color:#365b46;font-size:12px;font-weight:700;margin-top:2px;
+}
+#dashboardStaffPickerModal .employee-picker-item.unavailable .employee-picker-phone{color:#e5f4e9}
+#dashboardStaffPickerModal .employee-picker-status{
+  padding:4px 11px;font-size:11px;font-weight:800;border-radius:20px;
+}
+#dashboardStaffPickerModal .employee-picker-status.available{background:#c9efd4;color:#14532d}
+#dashboardStaffPickerModal .employee-picker-status.unavailable{background:#fff;color:#174b38}
+@media(max-width:650px){
+  #dashboardStaffPickerModal .employee-picker-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #dashboardStaffPickerModal .employee-picker-item{min-height:104px;padding:11px 6px}
+}
 
 </style>
 </head>
@@ -1230,27 +1266,13 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
   </div>
 </div>
 
-<div id="dashboardBedStaffModal" class="modal-backdrop hidden" style="z-index:70">
-  <div class="modal employee-picker-modal">
-    <div class="modal-head">
-      <h2>รายชื่อหมอนวดและเบอร์โทรศัพท์</h2>
-      <button class="close" onclick="closeDashboardBedStaffModal()">×</button>
-    </div>
-    <p class="employee-picker-hint">รายชื่อหมอนวดที่เปิดใช้งานทั้งหมด</p>
-    <div id="dashboardBedStaffList" class="employee-picker-list"></div>
-    <div class="form-actions">
-      <button class="btn btn-light" onclick="closeDashboardBedStaffModal()">ปิด</button>
-    </div>
-  </div>
-</div>
-
 <div id="dashboardStaffPickerModal" class="modal-backdrop hidden" style="z-index:70">
   <div class="modal employee-picker-modal">
     <div class="modal-head">
-      <h2>สถานะพนักงานทั้งหมด</h2>
+      <h2>รายชื่อและเบอร์โทรหมอ</h2>
       <button class="close" onclick="closeDashboardStaffPicker()">×</button>
     </div>
-    <p class="employee-picker-hint">สีขาว = ว่าง · สีเขียว = ไม่ว่าง (กำลังนวด)</p>
+    <p class="employee-picker-hint">รายชื่อหมอที่เปิดใช้งาน พร้อมเบอร์โทรและสถานะงาน</p>
     <div id="dashboardStaffPickerList" class="employee-picker-list"></div>
     <div class="form-actions">
       <button class="btn btn-light" onclick="closeDashboardStaffPicker()">ปิด</button>
@@ -1492,10 +1514,6 @@ function refreshAfterAction() {
       refreshRequested=false;
       try {
         await refresh(true);
-        // อัปเดตรายชื่อหมอนวดใน Popup หากเปิดค้างอยู่
-        if(!document.getElementById('dashboardBedStaffModal').classList.contains('hidden')) {
-          renderDashboardBedStaffList();
-        }
         // อัปเดตสถานะใน Popup พนักงาน หากเปิดค้างอยู่
         if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) {
           renderDashboardStaffPicker();
@@ -1862,10 +1880,10 @@ function renderDashboard() {
     </div>
 
     <div class="stats">
-      <button type="button" class="stat-card stat-card-clickable" onclick="openDashboardBedStaffModal()" aria-label="ดูรายชื่อหมอนวดและเบอร์โทรศัพท์">
-        <div class="stat-top"><span class="stat-name">รายชื่อ/เบอร์โทรพนักงาน</span><span class="stat-icon">▤</span></div>
-        <div class="stat-value">${beds.length}</div>
-        <div class="stat-note">เตียงและห้องบริการ · กดเพื่อดูรายชื่อหมอนวด</div>
+      <button type="button" class="stat-card stat-card-clickable" onclick="openDashboardStaffPicker()" aria-label="ดูรายชื่อและเบอร์โทรหมอ">
+        <div class="stat-top"><span class="stat-name">รายชื่อและเบอร์โทรหมอ</span><span class="stat-icon">♙</span></div>
+        <div class="stat-value">${staff}</div>
+        <div class="stat-note">หมอที่เปิดใช้งาน · กดเพื่อดูรายชื่อและเบอร์โทร</div>
       </button>
 
       <div class="stat-card">
@@ -2417,6 +2435,7 @@ function renderEmployeePickerList(containerId, selectable) {
         ${selectable && busy?'disabled':''}>
         <span class="employee-picker-name">${name}</span>
         <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'ไม่ว่าง':'ว่าง'}</span>
+        <span class="employee-picker-phone">${escapeHTML(employee.phone||'ไม่ระบุเบอร์โทร')}</span>
       </button>`;
   }).join('');
 }
@@ -2428,35 +2447,6 @@ function openEmployeePicker() {
   if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
     if(!document.getElementById('employeePickerModal').classList.contains('hidden')) renderEmployeePickerList('employeePickerList',true);
   }).catch(err=>console.warn('Refresh employee status:',err));
-}
-
-function renderDashboardBedStaffList() {
-  const list=document.getElementById('dashboardBedStaffList');
-  const employees=(state.employees||[]).filter(x=>active(x.active));
-  if(!employees.length) {
-    list.innerHTML='<div class="employee-picker-empty">ยังไม่มีรายชื่อหมอนวดที่เปิดใช้งาน</div>';
-    return;
-  }
-  list.innerHTML=employees.map((employee,index)=>`
-    <div class="employee-picker-item available" style="cursor:default;display:flex;align-items:center;gap:12px">
-      <span style="color:var(--gold);font-weight:700;min-width:24px">${index+1}.</span>
-      <span style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
-        <span class="employee-picker-name">${escapeHTML(employee.name||'ไม่ระบุชื่อ')}</span>
-        <span style="font-size:13px;color:var(--muted)">โทร. ${escapeHTML(employee.phone||'ไม่ได้ระบุเบอร์โทร')}</span>
-      </span>
-    </div>`).join('');
-}
-
-function openDashboardBedStaffModal() {
-  renderDashboardBedStaffList();
-  document.getElementById('dashboardBedStaffModal').classList.remove('hidden');
-  if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
-    if(!document.getElementById('dashboardBedStaffModal').classList.contains('hidden')) renderDashboardBedStaffList();
-  }).catch(err=>console.warn('Refresh dashboard therapist list:',err));
-}
-
-function closeDashboardBedStaffModal() {
-  document.getElementById('dashboardBedStaffModal').classList.add('hidden');
 }
 
 function openDashboardStaffPicker() {
@@ -2884,7 +2874,7 @@ async function addEmployee(){
   const name=document.getElementById('staffName').value.trim();
   if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
   try{
-    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value,registrationNumber:document.getElementById('staffRegistrationNumber').value.trim()}});
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
     notify('เพิ่มพนักงานเรียบร้อยแล้ว');
     lastRefreshAt=0;
@@ -2908,15 +2898,14 @@ function renderStaff(){
   const employees=state.employees||[];
   sharedPayoutDraft={...(state.servicePayouts||{})};
   document.getElementById('pageContent').innerHTML=`
-    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ · เลื่อนสวิตช์เพื่อเปิดหรือปิดการใช้งานพนักงาน</p></div></div>
-    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>หมายเลขขึ้นทะเบียนหมอนวด</th><th>ประเภท</th><th>สถานะ เปิด / ปิด</th></tr></thead><tbody>
-      ${employees.map(x=>{const enabled=active(x.active);return `<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.registrationNumber||'-')}</td><td>${escapeHTML(x.type||'-')}</td><td style="white-space:nowrap"><label class="service-switch" title="${enabled?'ปิดการใช้งานพนักงาน':'เปิดการใช้งานพนักงาน'}"><input type="checkbox" ${enabled?'checked':''} onchange="toggleEmployeeActive('${escapeHTML(x.id)}',this.checked,this)"><span class="service-switch-track"></span></label><span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span></td></tr>`;}).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
+      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
     </tbody></table></div>
     <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
     <div class="panel"><div class="form-grid">
       <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
-      <div class="field"><label>เลขที่ใบอนุญาต/หมายเลขขึ้นทะเบียนหมอนวด <span style="color:var(--muted);font-weight:400">(ไม่บังคับ)</span></label><input id="staffRegistrationNumber" placeholder="กรอกหมายเลขขึ้นทะเบียนหมอนวด"></div>
       <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
     </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
     <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
@@ -2926,39 +2915,6 @@ function renderStaff(){
       <div class="staff-form-actions"><button class="btn btn-primary" onclick="saveSharedPayouts()">บันทึกค่ามือทั้งหมด</button></div>
     </div>`;
   renderPayoutRows();
-}
-
-async function toggleEmployeeActive(employeeId, enabled, control) {
-  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
-  if(!employee || (control && control.dataset.saving==='1')) return;
-  const previous=active(employee.active);
-  const row=control?.closest('tr');
-  const statusLabel=row?.querySelector('.service-status');
-  employee.active=enabled;
-  if(control) { control.disabled=true; control.dataset.saving='1'; }
-  if(statusLabel) {
-    statusLabel.textContent=enabled?'เปิดใช้งาน':'ปิดใช้งาน';
-    statusLabel.classList.toggle('on',enabled);
-    statusLabel.classList.toggle('off',!enabled);
-  }
-  try {
-    const result=await api('setEmployeeActive',{employeeId,active:enabled});
-    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะพนักงานไม่สำเร็จ');
-    lastRefreshAt=0;
-    notify(enabled?'เปิดใช้งานพนักงานแล้ว':'ปิดใช้งานพนักงานแล้ว');
-    refreshAfterAction();
-  } catch(err) {
-    employee.active=previous;
-    if(control) control.checked=previous;
-    if(statusLabel) {
-      statusLabel.textContent=previous?'เปิดใช้งาน':'ปิดใช้งาน';
-      statusLabel.classList.toggle('on',previous);
-      statusLabel.classList.toggle('off',!previous);
-    }
-    notify(err.message,'error');
-  } finally {
-    if(control) { control.disabled=false; delete control.dataset.saving; }
-  }
 }
 
 /* SERVICES */
