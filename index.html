@@ -1526,19 +1526,28 @@ async function renderExtensionSettings() {
   container.innerHTML=`<div class="panel" style="max-width:680px;padding:22px">
     <h2 style="margin:0 0 8px;color:var(--green)">ตั้งค่าค่ามือหมอนวดเมื่อต่อเวลา</h2>
     <p style="color:var(--muted);margin:0 0 18px">กำหนดค่ามือที่หมอนวดจะได้รับต่อเวลาที่เพิ่มให้ลูกค้า แยกจากราคาที่เก็บลูกค้า</p>
-    <div class="field" style="max-width:320px"><label>ค่ามือหมอนวด ต่อ 30 นาที (บาท)</label><input id="extensionStaffRate" type="number" min="0" step="1" value="50"></div>
-    <div style="font-size:13px;color:var(--muted);margin:8px 0 18px">ค่าเริ่มต้น 50 บาท / 30 นาที สามารถเปลี่ยนได้ทุกเมื่อ</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:520px">
+      <div class="field"><label>ค่ามือ 30 นาที (บาท)</label><input id="extensionStaffRate30" type="number" min="0" step="1" value="50"></div>
+      <div class="field"><label>ค่ามือ 60 นาที (บาท)</label><input id="extensionStaffRate60" type="number" min="0" step="1" value="100"></div>
+      <div class="field"><label>ค่ามือ 90 นาที (บาท)</label><input id="extensionStaffRate90" type="number" min="0" step="1" value="150"></div>
+      <div class="field"><label>ค่ามือ 120 นาที (บาท)</label><input id="extensionStaffRate120" type="number" min="0" step="1" value="200"></div>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin:8px 0 18px">ค่าเริ่มต้น 30 นาที 50 บาท, 60 นาที 100 บาท, 90 นาที 150 บาท และ 120 นาที 200 บาท สามารถแก้ไขได้ทุกเมื่อ</div>
     <button class="btn btn-primary" id="saveExtensionSettingsBtn" onclick="saveExtensionSettings()">บันทึกการตั้งค่า</button>
     <div id="extensionSettingsStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
   </div>`;
-  try { const r=await api('getExtensionSettings'); if(r.ok) document.getElementById('extensionStaffRate').value=Number(r.staffRate ?? 50); }
-  catch(e){ document.getElementById('extensionSettingsStatus').textContent='โหลดค่าเดิมไม่สำเร็จ: '+e.message; }
+  try {
+    const r=await api('getExtensionSettings');
+    if(r.ok){ const rates=r.rates||{30:r.staffRate??50,60:(r.staffRate??50)*2,90:(r.staffRate??50)*3,120:(r.staffRate??50)*4};
+      [30,60,90,120].forEach(m=>document.getElementById('extensionStaffRate'+m).value=Number(rates[m]??({30:50,60:100,90:150,120:200}[m])));
+    }
+  } catch(e){ document.getElementById('extensionSettingsStatus').textContent='โหลดค่าเดิมไม่สำเร็จ: '+e.message; }
 }
 async function saveExtensionSettings(){
-  const input=document.getElementById('extensionStaffRate'); const rate=Number(input.value);
-  if(input.value.trim()===''||!Number.isFinite(rate)||rate<0){notify('กรุณากรอกค่ามือให้ถูกต้อง','error');return;}
+  const rates={};
+  for(const m of [30,60,90,120]){const input=document.getElementById('extensionStaffRate'+m);const value=Number(input.value);if(input.value.trim()===''||!Number.isFinite(value)||value<0){notify('กรุณากรอกค่ามือ '+m+' นาทีให้ถูกต้อง','error');return;}rates[m]=value;}
   const btn=document.getElementById('saveExtensionSettingsBtn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
-  try { const r=await api('saveExtensionSettings',{staffRate:rate}); if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ'); document.getElementById('extensionSettingsStatus').textContent='บันทึกแล้ว: '+rate.toLocaleString('th-TH')+' บาท / 30 นาที';notify('บันทึกค่ามือต่อเวลาแล้ว'); }
+  try { const r=await api('saveExtensionSettings',{rates}); if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ'); document.getElementById('extensionSettingsStatus').textContent='บันทึกแล้ว: '+[30,60,90,120].map(m=>m+' นาที '+Number(r.rates[m]).toLocaleString('th-TH')+' บาท').join(' | ');notify('บันทึกค่ามือต่อเวลาแล้ว'); }
   catch(e){notify(e.message,'error');} finally {btn.disabled=false;btn.textContent='บันทึกการตั้งค่า';}
 }
 
