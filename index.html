@@ -1276,8 +1276,8 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
           <button class="close" type="button" onclick="hideExtraForm()">×</button>
         </div>
         <div id="extraExtendFields" class="extra-form-grid hidden">
-          <div class="field"><label>ระยะเวลาที่ต่อ</label><select id="extraMinutes"><option value="30">30 นาที</option><option value="60">60 นาที</option><option value="90">90 นาที</option><option value="120">120 นาที</option></select></div>
-          <div class="field"><label>กำหนดราคาต่อเวลา (บาท)</label><input id="extraPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="ใส่ราคาที่ต้องการ"></div>
+          <div class="field"><label>ระยะเวลาที่ต่อ</label><select id="extraMinutes" onchange="updateExtensionPriceFromStaffRate()"><option value="30">30 นาที</option><option value="60">60 นาที</option><option value="90">90 นาที</option><option value="120">120 นาที</option></select></div>
+          <div class="field"><label>ราคา / ค่ามือ (บาท)</label><input id="extraPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="ดึงค่ามือจากการตั้งค่าอัตโนมัติ"><small id="extraPriceHint" style="color:var(--muted)">ระบบจะนำค่ามือที่ตั้งไว้ตามระยะเวลามาใส่ให้อัตโนมัติ</small></div>
         </div>
         <div id="extraServiceFields" class="field hidden"><label>เลือกคอร์สที่เพิ่ม</label><select id="extraServiceSelect"></select><small style="color:var(--muted)">เวลาและราคาจะดึงจากรายการบริการ</small></div>
         <div class="field" style="margin-top:14px"><label>เลือกหมอนวด (แถวละ 4 ช่อง)</label><div id="extraStaffGrid" class="extra-staff-grid"></div><small id="extraStaffHint" style="color:var(--muted)">เลือกหมอนวดที่ว่าง หรือเลือกหมอนวดเดิมได้</small></div>
@@ -2680,6 +2680,7 @@ let activeBookingForExtra=null;
 let activeBookingBed=null;
 let activeExtraMode='';
 let activeExtraEmployeeId='';
+let extensionStaffRatesCache=null;
 
 function openActiveBookingForBed(bed) {
   const booking=(state.activeBookings||[]).find(x=>String(x.bedId)===String(bed.id)&&x.status==='กำลังนวด');
@@ -2704,7 +2705,37 @@ function showExtraForm(mode){
   document.getElementById('extraServiceFields').classList.toggle('hidden',extend);
   if(!extend){const services=(state.services||[]).filter(x=>active(x.active));document.getElementById('extraServiceSelect').innerHTML=buildGroupedServiceOptions(services);}
   renderExtraStaffGrid();
-  if(extend){setTimeout(()=>document.getElementById('extraPrice')?.focus(),80);}
+  if(extend){
+    const priceInput=document.getElementById('extraPrice');
+    const hint=document.getElementById('extraPriceHint');
+    priceInput.value='';
+    if(hint) hint.textContent='กำลังโหลดค่ามือที่ร้านตั้งไว้...';
+    loadExtensionStaffRates().then(()=>updateExtensionPriceFromStaffRate()).catch(err=>{
+      if(hint) hint.textContent='โหลดค่ามือไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ แล้วลองเปิด Popup ใหม่';
+      notify('โหลดค่ามือต่อเวลาไม่สำเร็จ: '+err.message,'error');
+    });
+    setTimeout(()=>priceInput?.focus(),80);
+  }
+}
+async function loadExtensionStaffRates(){
+  const r=await api('getExtensionSettings');
+  if(!r || !r.ok || !r.rates) throw new Error(r?.error||'ไม่พบข้อมูลค่ามือ');
+  extensionStaffRatesCache=r.rates;
+  return extensionStaffRatesCache;
+}
+function updateExtensionPriceFromStaffRate(){
+  const minutes=Number(document.getElementById('extraMinutes')?.value||0);
+  const priceInput=document.getElementById('extraPrice');
+  const hint=document.getElementById('extraPriceHint');
+  if(!priceInput || !extensionStaffRatesCache) return;
+  const rate=extensionStaffRatesCache[String(minutes)];
+  if(rate===undefined || rate===null || !Number.isFinite(Number(rate))){
+    priceInput.value='';
+    if(hint) hint.textContent='ไม่พบค่ามือสำหรับ '+minutes+' นาที กรุณาตรวจสอบหน้าตั้งค่าค่ามือต่อเวลา';
+    return;
+  }
+  priceInput.value=String(Number(rate));
+  if(hint) hint.textContent='ดึงค่ามือ '+minutes+' นาที จากการตั้งค่าของร้านแล้ว';
 }
 function hideExtraForm(){document.getElementById('extraForm').classList.add('hidden');activeExtraMode='';activeExtraEmployeeId='';}
 function renderExtraStaffGrid(){
