@@ -968,7 +968,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 }
 .employee-picker-item:disabled { opacity:1; }
 .employee-picker-name { font-weight:500; line-height:1.35; overflow-wrap:anywhere; }
-.employee-picker-phone{display:block;font-size:12px;color:var(--muted);margin-top:3px}
 .employee-picker-status {
   flex-shrink:0; padding:3px 9px; border-radius:20px;
   font-size:11px; background:#f2f4ef; color:#287044;
@@ -1083,41 +1082,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .member-pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:20px;background:#f1f5ef;color:#365b43;font-size:11px;font-weight:600}
 @media(max-width:700px){#memberTotalCount,#memberFilteredCount{font-size:20px!important}.sidebar nav{overflow-x:auto;gap:2px}.nav-btn{min-width:58px}}
 
-
-
-/* Dashboard doctor directory: stronger contrast and clearer availability */
-#dashboardStaffPickerModal .employee-picker-modal{border:1px solid #d8e5dc;box-shadow:0 22px 60px rgba(10,40,25,.24)}
-#dashboardStaffPickerModal .employee-picker-hint{color:#52665a;font-weight:500}
-#dashboardStaffPickerModal .employee-picker-list{gap:11px}
-#dashboardStaffPickerModal .employee-picker-item{
-  min-height:112px;padding:13px 9px;border-radius:14px;
-  border-width:1.5px;box-shadow:0 3px 10px rgba(23,63,50,.08);
-  transition:transform .15s ease,box-shadow .15s ease;
-}
-#dashboardStaffPickerModal .employee-picker-item.available{
-  background:#f0faf3;border-color:#80bd91;color:#174b30;
-}
-#dashboardStaffPickerModal .employee-picker-item.available:hover{
-  background:#e2f5e8;border-color:#23845d;box-shadow:0 5px 14px rgba(35,132,93,.16);transform:translateY(-1px);
-}
-#dashboardStaffPickerModal .employee-picker-item.unavailable{
-  background:#174b38;border-color:#0e3929;color:#fff;cursor:default;
-}
-#dashboardStaffPickerModal .employee-picker-name{font-size:14px;font-weight:700}
-#dashboardStaffPickerModal .employee-picker-phone{
-  color:#365b46;font-size:12px;font-weight:700;margin-top:2px;
-}
-#dashboardStaffPickerModal .employee-picker-item.unavailable .employee-picker-phone{color:#e5f4e9}
-#dashboardStaffPickerModal .employee-picker-status{
-  padding:4px 11px;font-size:11px;font-weight:800;border-radius:20px;
-}
-#dashboardStaffPickerModal .employee-picker-status.available{background:#c9efd4;color:#14532d}
-#dashboardStaffPickerModal .employee-picker-status.unavailable{background:#fff;color:#174b38}
-@media(max-width:650px){
-  #dashboardStaffPickerModal .employee-picker-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  #dashboardStaffPickerModal .employee-picker-item{min-height:104px;padding:11px 6px}
-}
-
 </style>
 </head>
 
@@ -1153,6 +1117,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
       <button class="nav-btn" data-page="booking" onclick="showPage('booking')"><span class="nav-icon">▦</span>Booking จองคิว</button>
       <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
+      <button class="nav-btn" data-page="electricity" onclick="showPage('electricity')"><span class="nav-icon">ϟ</span>บันทึกการใช้ไฟฟ้า</button>
       <button class="nav-btn" data-page="extensionSettings" onclick="showPage('extensionSettings')"><span class="nav-icon">฿</span>ตั้งค่าค่ามือต่อเวลา</button>
       <button class="nav-btn" data-page="members" onclick="showPage('members')"><span class="nav-icon">♙</span>สมาชิก Nicha Cam</button>
       <button class="nav-btn" data-page="staff-ccenter" onclick="showPage('staff-ccenter')"><span class="nav-icon">♙</span>ศูนย์จัดการพนักงาน</button>
@@ -1269,10 +1234,10 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 <div id="dashboardStaffPickerModal" class="modal-backdrop hidden" style="z-index:70">
   <div class="modal employee-picker-modal">
     <div class="modal-head">
-      <h2>รายชื่อและเบอร์โทรหมอ</h2>
+      <h2>สถานะพนักงานทั้งหมด</h2>
       <button class="close" onclick="closeDashboardStaffPicker()">×</button>
     </div>
-    <p class="employee-picker-hint">รายชื่อหมอที่เปิดใช้งาน พร้อมเบอร์โทรและสถานะงาน</p>
+    <p class="employee-picker-hint">สีขาว = ว่าง · สีเขียว = ไม่ว่าง (กำลังนวด)</p>
     <div id="dashboardStaffPickerList" class="employee-picker-list"></div>
     <div class="form-actions">
       <button class="btn btn-light" onclick="closeDashboardStaffPicker()">ปิด</button>
@@ -1549,6 +1514,7 @@ function showPage(page) {
     services:'เมนูบริการ',
     booking:'Booking จองคิว',
     report:'รายงาน',
+    electricity:'บันทึกการใช้ไฟฟ้า',
     extensionSettings:'ตั้งค่าค่ามือต่อเวลา',
     members:'สมาชิก Nicha Cam',
     'staff-ccenter':'ศูนย์จัดการพนักงาน'
@@ -1562,6 +1528,7 @@ function showPage(page) {
   if(page==='services') renderServices();
   if(page==='booking') renderBooking();
   if(page==='report') renderReport();
+  if(page==='electricity') renderElectricity();
   if(page==='extensionSettings') renderExtensionSettings();
   if(page==='members') renderMembers();
   if(page==='staff-ccenter') renderStaffCenter();
@@ -1762,6 +1729,90 @@ function renderStaffCenter() {
 }
 
 
+// ===== ELECTRICITY TRACKING =====
+let electricityCache={readings:[],bills:[]};
+function moneyTHB(value){return Number(value||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function electricityDateLabel(value){
+  if(!value)return '-';
+  const d=new Date(String(value).slice(0,10)+'T00:00:00');
+  if(Number.isNaN(d.getTime()))return value;
+  return [String(d.getDate()).padStart(2,'0'),String(d.getMonth()+1).padStart(2,'0'),d.getFullYear()].join('/');
+}
+async function renderElectricity(){
+  const c=document.getElementById('pageContent');
+  c.innerHTML=`<div class="panel" style="padding:20px">
+    <div class="section-head"><div><h2 style="margin:0;color:var(--green)">บันทึกการใช้ไฟฟ้า</h2><p style="margin:5px 0;color:var(--muted)">บันทึกเลขมิเตอร์สะสม พร้อมราคาต่อหน่วยและสรุปค่าใช้จ่าย</p></div><button class="btn btn-light" onclick="renderElectricity()">↻ รีเฟรช</button></div>
+    <div class="form-grid" style="margin:16px 0">
+      <div class="field"><label>วันที่อ่านมิเตอร์ (ค.ศ.)</label><input id="elecDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label>เลขมิเตอร์สะสม</label><input id="elecMeter" type="number" min="0" step="0.01" placeholder="เลขตามหน้ามิเตอร์"></div>
+      <div class="field"><label>ราคาต่อหน่วย (บาท)</label><input id="elecRate" type="number" min="0" step="0.01" placeholder="เช่น 4.50"></div>
+      <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="elecNote" placeholder="เช่น รอบบิล / ผู้จดมิเตอร์"></div>
+    </div>
+    <div id="elecPreview" style="padding:12px 15px;border-radius:12px;background:#f2f5ed;color:var(--green);margin-bottom:14px">กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-primary" id="saveElecReadingBtn" onclick="saveElectricityReading()">บันทึกเลขมิเตอร์</button><button class="btn btn-light" onclick="exportElectricityExcel()">ส่งออก Excel</button></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <div class="section-head"><div><h2 style="margin:0;color:var(--green)">ประวัติการอ่านมิเตอร์</h2><p style="margin:5px 0;color:var(--muted)">จำนวนที่ใช้ = มิเตอร์ครั้งนี้ − มิเตอร์ครั้งก่อน</p></div></div>
+    <div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse"><thead><tr><th>วัน/เดือน/ปี ค.ศ.</th><th>มิเตอร์</th><th>หน่วยละ</th><th>จำนวนที่ใช้</th><th>ผลรวม</th></tr></thead><tbody id="elecReadingRows"><tr><td colspan="5">กำลังโหลด...</td></tr></tbody></table></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <h2 style="margin:0 0 12px;color:var(--green)">สรุปการใช้ไฟฟ้ารายเดือน</h2>
+    <div style="overflow:auto"><table style="width:100%;min-width:520px;border-collapse:collapse"><thead><tr><th>เดือน</th><th>จำนวนหน่วยที่ใช้</th><th>ค่าใช้จ่ายจากมิเตอร์</th></tr></thead><tbody id="elecMonthlyRows"></tbody></table></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <h2 style="margin:0 0 12px;color:var(--green)">บันทึกบิลค่าไฟรายเดือน</h2>
+    <div class="form-grid"><div class="field"><label>เดือน</label><input id="elecBillMonth" type="month" value="${new Date().toISOString().slice(0,7)}"></div><div class="field"><label>จำนวนหน่วยตามบิล</label><input id="elecBillUnits" type="number" min="0" step="0.01"></div><div class="field"><label>ยอดค่าไฟ (บาท)</label><input id="elecBillAmount" type="number" min="0" step="0.01"></div><div class="field"><label>สถานะ</label><select id="elecBillStatus"><option>รอชำระ</option><option>ชำระแล้ว</option></select></div></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="saveElectricityBill()">บันทึกบิลรายเดือน</button></div>
+    <div style="overflow:auto;margin-top:16px"><table style="width:100%;min-width:620px;border-collapse:collapse"><thead><tr><th>เดือน</th><th>หน่วย</th><th>ยอดค่าไฟ</th><th>สถานะ</th></tr></thead><tbody id="elecBillRows"></tbody></table></div>
+  </div>`;
+  try{
+    const result=await api('getElectricityData');
+    if(!result.ok)throw new Error(result.error||'โหลดข้อมูลค่าไฟไม่สำเร็จ');
+    electricityCache={readings:result.readings||[],bills:result.bills||[]};
+    drawElectricityTables();
+    ['elecMeter','elecRate'].forEach(id=>document.getElementById(id).addEventListener('input',updateElectricityPreview));
+    document.getElementById('elecDate').addEventListener('change',updateElectricityPreview);
+    updateElectricityPreview();
+  }catch(err){notify(err.message,'error');}
+}
+function drawElectricityTables(){
+  const rows=electricityCache.readings||[];
+  const body=document.getElementById('elecReadingRows');if(!body)return;
+  body.innerHTML=rows.length?rows.map(r=>`<tr><td>${escapeHTML(electricityDateLabel(r.readingDate))}</td><td>${Number(r.meterValue||0).toLocaleString('th-TH')}</td><td>${moneyTHB(r.unitPrice)}</td><td>${r.unitsUsed===''||r.unitsUsed===null?'-':Number(r.unitsUsed||0).toLocaleString('th-TH')}</td><td>${r.amount===undefined?'-':moneyTHB(r.amount)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:20px">ยังไม่มีประวัติการอ่านมิเตอร์</td></tr>';
+  const monthly=document.getElementById('elecMonthlyRows');
+  if(monthly){
+    const totals={};
+    rows.forEach(r=>{const month=String(r.readingDate||'').slice(0,7);if(!month)return;if(!totals[month])totals[month]={units:0,amount:0,hasAmount:false};if(r.unitsUsed!==''&&r.unitsUsed!==null&&r.unitsUsed!==undefined){totals[month].units+=Number(r.unitsUsed||0);if(r.amount!==''&&r.amount!==null&&r.amount!==undefined){totals[month].amount+=Number(r.amount||0);totals[month].hasAmount=true;}}});
+    const months=Object.keys(totals).sort().reverse();
+    monthly.innerHTML=months.length?months.map(m=>`<tr><td>${escapeHTML(m)}</td><td>${totals[m].units.toLocaleString('th-TH')}</td><td>${totals[m].hasAmount?moneyTHB(totals[m].amount):'-'}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;padding:18px">ยังไม่มีข้อมูลสำหรับสรุปรายเดือน</td></tr>';
+  }
+  const bills=document.getElementById('elecBillRows');if(bills)bills.innerHTML=(electricityCache.bills||[]).map(b=>`<tr><td>${escapeHTML(b.billMonth||'-')}</td><td>${Number(b.unitsUsed||0).toLocaleString('th-TH')}</td><td>${moneyTHB(b.amount)}</td><td>${escapeHTML(b.status||'')}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:18px">ยังไม่มีบิลค่าไฟ</td></tr>';
+}
+function updateElectricityPreview(){
+  const meter=Number(document.getElementById('elecMeter')?.value),rate=Number(document.getElementById('elecRate')?.value);
+  const previous=(electricityCache.readings||[]).filter(r=>String(r.readingDate||'')<(document.getElementById('elecDate')?.value||'')).sort((a,b)=>String(b.readingDate||'').localeCompare(String(a.readingDate||'')))[0];
+  const box=document.getElementById('elecPreview');if(!box)return;
+  if(!Number.isFinite(meter)||!document.getElementById('elecMeter').value||!Number.isFinite(rate)||!document.getElementById('elecRate').value){box.textContent='กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก';return;}
+  const used=previous?meter-Number(previous.meterValue||0):null;
+  box.textContent=previous?(used<0?'เลขมิเตอร์ต้องไม่น้อยกว่าครั้งก่อน':`ครั้งก่อน ${Number(previous.meterValue).toLocaleString('th-TH')} หน่วย | ใช้ไป ${used.toLocaleString('th-TH')} หน่วย | รวม ${moneyTHB(used*rate)} บาท`):'เป็นการบันทึกครั้งแรก ยังไม่มีเลขครั้งก่อนสำหรับคำนวณหน่วยที่ใช้';
+}
+async function saveElectricityReading(){
+  const reading={readingDate:document.getElementById('elecDate').value,meterValue:document.getElementById('elecMeter').value,unitPrice:document.getElementById('elecRate').value,note:document.getElementById('elecNote').value};
+  const btn=document.getElementById('saveElecReadingBtn');btn.disabled=true;
+  try{const r=await api('saveElectricityReading',{reading});if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ');notify('บันทึกเลขมิเตอร์เรียบร้อยแล้ว');await renderElectricity();}
+  catch(e){notify(e.message,'error');}finally{btn.disabled=false;}
+}
+async function saveElectricityBill(){
+  const bill={billMonth:document.getElementById('elecBillMonth').value,unitsUsed:document.getElementById('elecBillUnits').value,amount:document.getElementById('elecBillAmount').value,status:document.getElementById('elecBillStatus').value};
+  try{const r=await api('saveElectricityBill',{bill});if(!r.ok)throw new Error(r.error||'บันทึกบิลไม่สำเร็จ');notify('บันทึกบิลค่าไฟแล้ว');await renderElectricity();}catch(e){notify(e.message,'error');}
+}
+function exportElectricityExcel(){
+  const headers=['วัน/เดือน/ปี ค.ศ.','มิเตอร์','หน่วยละ','จำนวนที่ใช้','ผลรวม'];
+  const lines=[headers,...(electricityCache.readings||[]).map(r=>[electricityDateLabel(r.readingDate),r.meterValue,r.unitPrice,r.unitsUsed,r.amount])];
+  const csv='\ufeff'+lines.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='NICHA-SPA-Electricity-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+}
+
 function renderBooking() {
   const container=document.getElementById('pageContent');
   container.innerHTML=`
@@ -1880,11 +1931,11 @@ function renderDashboard() {
     </div>
 
     <div class="stats">
-      <button type="button" class="stat-card stat-card-clickable" onclick="openDashboardStaffPicker()" aria-label="ดูรายชื่อและเบอร์โทรหมอ">
-        <div class="stat-top"><span class="stat-name">รายชื่อและเบอร์โทรหมอ</span><span class="stat-icon">♙</span></div>
-        <div class="stat-value">${staff}</div>
-        <div class="stat-note">หมอที่เปิดใช้งาน · กดเพื่อดูรายชื่อและเบอร์โทร</div>
-      </button>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-name">เตียงทั้งหมด</span><span class="stat-icon">▤</span></div>
+        <div class="stat-value">${beds.length}</div>
+        <div class="stat-note">เตียงและห้องบริการ</div>
+      </div>
 
       <div class="stat-card">
         <div class="stat-top"><span class="stat-name">เตียงว่าง</span><span class="stat-icon">✧</span></div>
@@ -2435,7 +2486,6 @@ function renderEmployeePickerList(containerId, selectable) {
         ${selectable && busy?'disabled':''}>
         <span class="employee-picker-name">${name}</span>
         <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'ไม่ว่าง':'ว่าง'}</span>
-        <span class="employee-picker-phone">${escapeHTML(employee.phone||'ไม่ระบุเบอร์โทร')}</span>
       </button>`;
   }).join('');
 }
@@ -2874,7 +2924,7 @@ async function addEmployee(){
   const name=document.getElementById('staffName').value.trim();
   if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
   try{
-    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value,registrationNumber:document.getElementById('staffRegistrationNumber').value.trim()}});
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
     notify('เพิ่มพนักงานเรียบร้อยแล้ว');
     lastRefreshAt=0;
@@ -2894,40 +2944,19 @@ async function saveSharedPayouts(){
   }catch(err){notify(err.message,'error');}
 }
 
-async function toggleEmployeeActive(employeeId, enabled, control){
-  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
-  if(!employee) return;
-  const previous=active(employee.active);
-  control.disabled=true;
-  employee.active=!!enabled;
-  renderStaff();
-  try{
-    const result=await api('setEmployeeActive',{employeeId:employeeId,active:!!enabled});
-    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะพนักงานไม่สำเร็จ');
-    notify(enabled?'เปิดใช้งานพนักงานแล้ว':'ปิดใช้งานพนักงานแล้ว');
-    lastRefreshAt=0;
-    await refreshAfterAction();
-  }catch(err){
-    employee.active=previous;
-    notify(err.message,'error');
-    renderStaff();
-  }
-}
-
 function renderStaff(){
   const employees=state.employees||[];
   sharedPayoutDraft={...(state.servicePayouts||{})};
   document.getElementById('pageContent').innerHTML=`
-    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>เปิด/ปิดการใช้งานพนักงานได้ โดยไม่ลบข้อมูลออกจากระบบ</p></div></div>
-    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ เปิด / ปิด</th></tr></thead><tbody>
-      ${employees.map(x=>{const enabled=active(x.active);return `<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td><label class="service-switch" title="${enabled?'ปิดใช้งาน':'เปิดใช้งาน'}"><input type="checkbox" ${enabled?'checked':''} onchange="toggleEmployeeActive('${escapeHTML(x.id)}',this.checked,this)"><span class="service-switch-track"></span></label><span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span></td></tr>`}).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
+      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
     </tbody></table></div>
     <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
     <div class="panel"><div class="form-grid">
       <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
       <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
-      <div class="field"><label>เลขที่ใบอนุญาต/หมายเลขขึ้นทะเบียนหมอนวด (ไม่บังคับ)</label><input id="staffRegistrationNumber" placeholder="กรอกหมายเลขขึ้นทะเบียนหมอนวด"></div>
     </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
     <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
     <div class="panel"><div style="margin:0 0 10px;font-weight:600;color:var(--green)">ค่ามือพนักงานแยกตามรายการบริการ</div>
@@ -3163,6 +3192,7 @@ async function syncShopLive() {
       else if(currentPage==='staff') renderStaff();
       else if(currentPage==='services') renderServices();
       else if(currentPage==='report') renderReport();
+      else if(currentPage==='electricity') renderElectricity();
       liveShopRenderPending=false;
     }
   } catch(err) {
