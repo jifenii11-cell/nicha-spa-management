@@ -1103,6 +1103,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="nav-btn" data-page="beds" onclick="showPage('beds')"><span class="nav-icon">▤</span>จัดการเตียง</button>
       <button class="nav-btn" data-page="staff" onclick="showPage('staff')"><span class="nav-icon">♙</span>พนักงาน</button>
       <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
+      <button class="nav-btn" data-page="booking" onclick="showPage('booking')"><span class="nav-icon">▦</span>Booking จองคิว</button>
       <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
     </nav>
 
@@ -1472,6 +1473,7 @@ function showPage(page) {
     beds:'จัดการเตียง',
     staff:'จัดการพนักงาน',
     services:'เมนูบริการ',
+    booking:'Booking จองคิว',
     report:'รายงาน'
   };
 
@@ -1481,7 +1483,22 @@ function showPage(page) {
   if(page==='beds') renderBeds();
   if(page==='staff') renderStaff();
   if(page==='services') renderServices();
+  if(page==='booking') renderBooking();
   if(page==='report') renderReport();
+}
+
+// แสดงหน้า Booking แยกภายในระบบ โดยคงเมนูด้านซ้ายไว้
+function renderBooking() {
+  const container=document.getElementById('pageContent');
+  container.innerHTML=`
+    <div style="background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+      <iframe
+        src="NICHA-SPA-BOOKING.html"
+        title="NICHA SPA Booking Calendar"
+        style="display:block;width:100%;height:calc(100vh - 125px);min-height:760px;border:0;background:#f4f5f1"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>`;
 }
 
 function money(value) {
