@@ -2874,7 +2874,7 @@ async function addEmployee(){
   const name=document.getElementById('staffName').value.trim();
   if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
   try{
-    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value,registrationNumber:document.getElementById('staffRegistrationNumber').value.trim()}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
     notify('เพิ่มพนักงานเรียบร้อยแล้ว');
     lastRefreshAt=0;
@@ -2894,19 +2894,40 @@ async function saveSharedPayouts(){
   }catch(err){notify(err.message,'error');}
 }
 
+async function toggleEmployeeActive(employeeId, enabled, control){
+  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
+  if(!employee) return;
+  const previous=active(employee.active);
+  control.disabled=true;
+  employee.active=!!enabled;
+  renderStaff();
+  try{
+    const result=await api('setEmployeeActive',{employeeId:employeeId,active:!!enabled});
+    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะพนักงานไม่สำเร็จ');
+    notify(enabled?'เปิดใช้งานพนักงานแล้ว':'ปิดใช้งานพนักงานแล้ว');
+    lastRefreshAt=0;
+    await refreshAfterAction();
+  }catch(err){
+    employee.active=previous;
+    notify(err.message,'error');
+    renderStaff();
+  }
+}
+
 function renderStaff(){
   const employees=state.employees||[];
   sharedPayoutDraft={...(state.servicePayouts||{})};
   document.getElementById('pageContent').innerHTML=`
-    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
-    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
-      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>เปิด/ปิดการใช้งานพนักงานได้ โดยไม่ลบข้อมูลออกจากระบบ</p></div></div>
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ เปิด / ปิด</th></tr></thead><tbody>
+      ${employees.map(x=>{const enabled=active(x.active);return `<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td><label class="service-switch" title="${enabled?'ปิดใช้งาน':'เปิดใช้งาน'}"><input type="checkbox" ${enabled?'checked':''} onchange="toggleEmployeeActive('${escapeHTML(x.id)}',this.checked,this)"><span class="service-switch-track"></span></label><span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span></td></tr>`}).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
     </tbody></table></div>
     <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
     <div class="panel"><div class="form-grid">
       <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
       <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
+      <div class="field"><label>เลขที่ใบอนุญาต/หมายเลขขึ้นทะเบียนหมอนวด (ไม่บังคับ)</label><input id="staffRegistrationNumber" placeholder="กรอกหมายเลขขึ้นทะเบียนหมอนวด"></div>
     </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
     <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
     <div class="panel"><div style="margin:0 0 10px;font-weight:600;color:var(--green)">ค่ามือพนักงานแยกตามรายการบริการ</div>
