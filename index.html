@@ -1462,39 +1462,6 @@ function refreshAfterAction() {
   return backgroundRefreshPromise;
 }
 
-// ซิงก์หน้าร้านและจัดการเตียงทุก 2 วินาที เพื่อให้เห็นการเปลี่ยนแปลงจากทุกอุปกรณ์
-let liveShopSyncBusy=false;
-let liveShopRenderPending=false;
-async function syncShopLive() {
-  if(liveShopSyncBusy || document.hidden || !sessionStorage.getItem('nicha_token')) return;
-  if(!['dashboard','beds'].includes(currentPage)) return;
-  if(backgroundRefreshPromise) return;
-
-  liveShopSyncBusy=true;
-  const before=JSON.stringify({beds:state.beds,activeBookings:state.activeBookings});
-  try {
-    await refresh(true);
-    const after=JSON.stringify({beds:state.beds,activeBookings:state.activeBookings});
-    if(before!==after) liveShopRenderPending=true;
-
-    const modalOpen=!!document.querySelector('.modal-backdrop:not(.hidden)');
-    if(liveShopRenderPending && !modalOpen) {
-      if(currentPage==='dashboard') renderDashboard();
-      else if(currentPage==='beds') renderBeds();
-      liveShopRenderPending=false;
-    }
-  } catch(err) {
-    console.warn('Live shop sync:',err);
-  } finally {
-    liveShopSyncBusy=false;
-  }
-}
-setInterval(syncShopLive,2000);
-document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden) syncShopLive();
-});
-window.addEventListener('focus',syncShopLive);
-
 function showPage(page) {
   currentPage=page;
 
@@ -2353,8 +2320,7 @@ async function cancelPreparedBooking() {
 
     closePreparedModal();
     notify('ยกเลิกรายการเตรียมไว้แล้ว');
-    // รอโหลดข้อมูลจากฐานข้อมูลจริง แล้ววาดหน้าร้าน/เตียงทันที
-    await refreshAfterAction();
+    refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
@@ -2786,6 +2752,80 @@ async function renderReport() {
     };
   });
 })();
+
+/* AUTO REFRESH ทุกหน้าของระบบ NICHA SPA */
+// ตรวจข้อมูลจาก Apps Script ทุก 2 วินาที โดยไม่รีโหลดทั้งหน้าเว็บ
+// วาดเฉพาะหน้าปัจจุบันเมื่อข้อมูลเปลี่ยน และไม่รบกวนขณะเปิด Popup/กำลังกรอกข้อมูล
+let liveShopSyncBusy=false;
+let liveShopRenderPending=false;
+function getLiveStateSnapshot() {
+  return JSON.stringify({
+    beds:state.beds||[],
+    employees:state.employees||[],
+    services:state.services||[],
+    servicePayouts:state.servicePayouts||{},
+    activeBookings:state.activeBookings||[],
+    members:state.members||[]
+  });
+}
+function isUserEditing() {
+  const el=document.activeElement;
+  return !!el && (
+    ['INPUT','TEXTAREA','SELECT'].includes(el.tagName) ||
+    el.isContentEditable
+  );
+}
+async function syncShopLive() {
+  if(liveShopSyncBusy || document.hidden || !sessionStorage.getItem('nicha_token')) return;
+  if(backgroundRefreshPromise || isUserEditing()) return;
+
+  // ไม่อัปเดตทับหน้าต่าง Popup ที่ผู้ใช้กำลังใช้งาน
+  const modalOpen=!!document.querySelector('.modal-backdrop:not(.hidden)');
+  if(modalOpen) return;
+
+  liveShopSyncBusy=true;
+  const before=getLiveStateSnapshot();
+  try {
+    await refresh(true);
+    const after=getLiveStateSnapshot();
+    if(before!==after) liveShopRenderPending=true;
+
+    if(liveShopRenderPending && !isUserEditing() &&
+       !document.querySelector('.modal-backdrop:not(.hidden)')) {
+      // หน้า Booking มีระบบรีเฟรชข้อมูลของตัวเองใน iframe อยู่แล้ว
+      // จึงไม่สร้าง iframe ใหม่ เพื่อไม่ให้ผู้ใช้หลุดจากหน้าปฏิทิน/รายละเอียดที่เปิดอยู่
+      if(currentPage==='dashboard') renderDashboard();
+      else if(currentPage==='beds') renderBeds();
+      else if(currentPage==='staff') renderStaff();
+      else if(currentPage==='services') renderServices();
+      else if(currentPage==='report') renderReport();
+      liveShopRenderPending=false;
+    }
+  } catch(err) {
+    // การตรวจสอบรอบถัดไปจะลองใหม่เอง ไม่รบกวนผู้ใช้ด้วย Popup ทุกครั้ง
+    console.warn('Live refresh:',err);
+  } finally {
+    liveShopSyncBusy=false;
+  }
+}
+
+// ตรวจข้อมูลทุกหน้าในระบบทุก 2 วินาที
+// ใช้ cache:no-store ใน api() เพื่อหลีกเลี่ยงข้อมูลค้างจาก cache
+const SHOP_LIVE_SYNC_INTERVAL=2000;
+setInterval(syncShopLive,SHOP_LIVE_SYNC_INTERVAL);
+
+// เมื่อกลับมาเปิดแท็บ หรือกลับมาโฟกัสหน้าต่าง ให้ตรวจข้อมูลทันที
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) syncShopLive();
+});
+window.addEventListener('focus',()=>syncShopLive());
+
+// รองรับสัญญาณจากหน้า Booking ที่ฝังอยู่ใน iframe (หากมีการส่ง postMessage)
+window.addEventListener('message',event=>{
+  if(event.data && event.data.type==='NICHA_BOOKING_PREPARED') {
+    refreshAfterAction();
+  }
+});
 
 /* STARTUP */
 
