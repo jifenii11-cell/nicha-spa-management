@@ -152,7 +152,7 @@ function dateValue(v){
 }
 function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function parseTime(v){const m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:'00:00';}
-function visibleReservations(){return appData.reservations.filter(r=>String(r.status).trim()==='ยืนยันแล้ว' && String(r.workflowStatus||'')!=='ยกเลิกคิว');}
+function visibleReservations(){return appData.reservations.filter(r=>String(r.status||'').trim()==='ยืนยันแล้ว' && String(r.workflowStatus||'').trim()!=='ยกเลิกคิว');}
 function render(){
   const all=visibleReservations(),pending=all.filter(r=>!r.alreadyPrepared);
   document.getElementById('pendingCount').textContent=pending.length;
@@ -215,7 +215,7 @@ function openDetail(id){
  const sourceConfirmed=String(selected.status||'').trim()==='ยืนยันแล้ว';
  const workflow=String(selected.workflowStatus||'');
  const effectiveWorkflow=workflow || (sourceConfirmed?'ยืนยันคิว':'');
- const cancelled=workflow==='ยกเลิกคิว';
+ const cancelled=workflow==='ยกเลิกคิว'||String(selected.status||'').trim()==='ยกเลิกแล้ว';
  document.getElementById('workflowState').textContent='สถานะฐานข้อมูล: '+(selected.status||'ไม่ระบุ')+' · สถานะร้าน: '+(cancelled?'ยกเลิกคิว':(effectiveWorkflow||'รอยืนยันคิว'))+(already?' · ส่งเข้าหน้าร้านแล้ว':'');
  const confirmBtn=document.getElementById('confirmQueueBtn');
  confirmBtn.disabled=sourceConfirmed||effectiveWorkflow==='ยืนยันคิว'||cancelled||already;
@@ -260,12 +260,30 @@ function closeBookingBedPicker(){document.getElementById('bookingBedPickerOverla
 function selectBookingBed(bedId){const bed=(appData.beds||[]).find(b=>String(b.id)===String(bedId));if(!bed)return;if(getBusyBookingBedIds().has(String(bed.id))||bed.status!=='ว่าง'){toast('เตียงนี้ไม่ว่าง กรุณาเลือกเตียงอื่น',true);renderBookingBedPicker();return;}document.getElementById('bedSelect').value=bed.id;document.getElementById('bedPickerLabel').textContent=bed.name+(bed.area?' · '+bed.area:'');document.getElementById('bedPickerTrigger').classList.add('selected');closeBookingBedPicker();}
 async function setReservationWorkflow(status){
  if(!selected)return;
+ const reservationId=selected.id;
  const action=status==='ยืนยันคิว'?'ยืนยันคิว':'ยกเลิกคิว';
- if(status==='ยกเลิกคิว'&&!confirm('ยืนยันยกเลิกคิวนี้ใช่หรือไม่?'))return;
+ if(status==='ยกเลิกคิว'&&selected.bookingStarted===true){toast('รายการนี้เริ่มนวดแล้ว ไม่สามารถยกเลิกคิวได้',true);return;}
+ if(status==='ยกเลิกคิว'&&!confirm('ยืนยันยกเลิกคิวนี้ใช่หรือไม่?\nระบบจะเปลี่ยนสถานะฐานข้อมูลเป็น “ยกเลิกแล้ว”'))return;
  if(status==='ยืนยันคิว'&&!confirm('ยืนยันคิวจองนี้ใช่หรือไม่?'))return;
- const msg=document.getElementById('modalMessage'),confirmBtn=document.getElementById('confirmQueueBtn'),cancelBtn=document.getElementById('cancelQueueBtn');msg.textContent='';confirmBtn.disabled=true;cancelBtn.disabled=true;
- try{const r=await api('setReservationWorkflow',{reservationId:selected.id,workflowStatus:status});if(!r.ok)throw new Error(r.error||'บันทึกสถานะคิวไม่สำเร็จ');toast(action+'เรียบร้อย');await loadAll();const id=selected.id;openDetail(id);}
- catch(e){msg.textContent=e.message;confirmBtn.disabled=false;cancelBtn.disabled=false;}
+ const msg=document.getElementById('modalMessage'),confirmBtn=document.getElementById('confirmQueueBtn'),cancelBtn=document.getElementById('cancelQueueBtn');
+ msg.textContent='';confirmBtn.disabled=true;cancelBtn.disabled=true;
+ try{
+  const r=await api('setReservationWorkflow',{reservationId,workflowStatus:status});
+  if(!r.ok)throw new Error(r.error||'บันทึกสถานะคิวไม่สำเร็จ');
+  if(status==='ยกเลิกคิว'){
+   closeDetail();
+   await loadAll();
+   toast(r.alreadyCancelled?'คิวนี้ถูกยกเลิกแล้ว':'ยกเลิกคิวเรียบร้อย และอัปเดตฐานข้อมูลแล้ว');
+  }else{
+   await loadAll();
+   toast(action+'เรียบร้อย');
+   openDetail(reservationId);
+  }
+ }catch(e){
+  msg.textContent=e.message;
+  confirmBtn.disabled=false;
+  cancelBtn.disabled=selected && selected.bookingStarted===true;
+ }
 }
 
 function getBusyBookingEmployeeIds(){
