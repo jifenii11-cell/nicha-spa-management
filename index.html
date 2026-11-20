@@ -1097,7 +1097,41 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 /* NICHA CAM MEMBER DIRECTORY */
 .member-pill{display:inline-flex;align-items:center;padding:5px 9px;border-radius:20px;background:#f1f5ef;color:#365b43;font-size:11px;font-weight:600}
 @media(max-width:700px){#memberTotalCount,#memberFilteredCount{font-size:20px!important}.sidebar nav{overflow-x:auto;gap:2px}.nav-btn{min-width:58px}}
+/* NICHA SPA: เลื่อนเมนูด้านซ้ายขึ้น-ลง */
+.sidebar {
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
+}
 
+.sidebar nav {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  padding-right:5px;
+  scrollbar-width:thin;
+  scrollbar-color:#c6a45c #245744;
+}
+
+.sidebar nav::-webkit-scrollbar {
+  width:6px;
+}
+
+.sidebar nav::-webkit-scrollbar-track {
+  background:#245744;
+  border-radius:10px;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb {
+  background:#c6a45c;
+  border-radius:10px;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb:hover {
+  background:#e8d6a6;
+}
 </style>
 </head>
 
