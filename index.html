@@ -2930,12 +2930,37 @@ async function addEmployee(){
   const name=document.getElementById('staffName').value.trim();
   if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
   try{
-    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value,registrationNo:document.getElementById('staffRegistrationNo').value.trim()}});
     if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
     notify('เพิ่มพนักงานเรียบร้อยแล้ว');
     lastRefreshAt=0;
     refreshAfterAction();
   }catch(err){notify(err.message,'error');}
+}
+
+async function toggleEmployeeActive(employeeId, enabled, control){
+  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
+  if(!employee || (control && control.dataset.saving==='1')) return;
+  const previous=active(employee.active);
+  const row=control?.closest('tr');
+  const statusLabel=row?.querySelector('.service-status');
+  employee.active=enabled;
+  if(control){control.disabled=true;control.dataset.saving='1';}
+  if(statusLabel){statusLabel.textContent=enabled?'เปิดใช้งาน':'ปิดใช้งาน';statusLabel.classList.toggle('on',enabled);statusLabel.classList.toggle('off',!enabled);}
+  try{
+    const result=await api('setEmployeeActive',{employeeId,active:enabled});
+    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะหมอนวดไม่สำเร็จ');
+    lastRefreshAt=0;
+    notify(enabled?'เปิดใช้งานหมอนวดแล้ว':'ปิดใช้งานหมอนวดแล้ว');
+    refreshAfterAction();
+  }catch(err){
+    employee.active=previous;
+    if(control) control.checked=previous;
+    if(statusLabel){statusLabel.textContent=previous?'เปิดใช้งาน':'ปิดใช้งาน';statusLabel.classList.toggle('on',previous);statusLabel.classList.toggle('off',!previous);}
+    notify(err.message,'error');
+  }finally{
+    if(control){control.disabled=false;delete control.dataset.saving;}
+  }
 }
 
 async function saveSharedPayouts(){
@@ -2955,14 +2980,15 @@ function renderStaff(){
   sharedPayoutDraft={...(state.servicePayouts||{})};
   document.getElementById('pageContent').innerHTML=`
     <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
-    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
-      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>หมายเลขขึ้นทะเบียนของหอ</th><th>เปิด / ปิดหมอนวด</th></tr></thead><tbody>
+      ${employees.map(x=>{const enabled=active(x.active);return `<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${escapeHTML(x.registrationNo||'-')}</td><td style="white-space:nowrap"><label class="service-switch" title="${enabled?'ปิดหมอนวด':'เปิดหมอนวด'}"><input type="checkbox" ${enabled?'checked':''} onchange="toggleEmployeeActive('${escapeHTML(x.id)}',this.checked,this)"><span class="service-switch-track"></span></label><span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span></td></tr>`;}).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีพนักงาน</td></tr>'}
     </tbody></table></div>
     <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
     <div class="panel"><div class="form-grid">
       <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
       <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
+      <div class="field"><label>หมายเลขขึ้นทะเบียนของหอ</label><input id="staffRegistrationNo" placeholder="กรอกหมายเลขขึ้นทะเบียน" autocomplete="off"></div>
     </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
     <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
     <div class="panel"><div style="margin:0 0 10px;font-weight:600;color:var(--green)">ค่ามือพนักงานแยกตามรายการบริการ</div>
