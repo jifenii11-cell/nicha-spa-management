@@ -1119,7 +1119,6 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
       <button class="nav-btn" data-page="extensionSettings" onclick="showPage('extensionSettings')"><span class="nav-icon">฿</span>ตั้งค่าค่ามือต่อเวลา</button>
       <button class="nav-btn" data-page="members" onclick="showPage('members')"><span class="nav-icon">♙</span>สมาชิก Nicha Cam</button>
-      <button class="nav-btn" data-page="staff-ccenter" onclick="showPage('staff-ccenter')"><span class="nav-icon">♙</span>ศูนย์จัดการพนักงาน</button>
     </nav>
 
     <div class="side-bottom">NICHA SPA · PREMIUM CARE</div>
@@ -1514,8 +1513,7 @@ function showPage(page) {
     booking:'Booking จองคิว',
     report:'รายงาน',
     extensionSettings:'ตั้งค่าค่ามือต่อเวลา',
-    members:'สมาชิก Nicha Cam',
-    'staff-ccenter':'ศูนย์จัดการพนักงาน'
+    members:'สมาชิก Nicha Cam'
   };
 
   document.getElementById('pageTitle').textContent=titles[page];
@@ -1528,7 +1526,6 @@ function showPage(page) {
   if(page==='report') renderReport();
   if(page==='extensionSettings') renderExtensionSettings();
   if(page==='members') renderMembers();
-  if(page==='staff-ccenter') renderStaffCenter();
 }
 
 // แสดงหน้า Booking แยกภายในระบบ โดยคงเมนูด้านซ้ายไว้
@@ -1562,8 +1559,9 @@ async function saveExtensionSettings(){
   catch(e){notify(e.message,'error');} finally {btn.disabled=false;btn.textContent='บันทึกการตั้งค่า';}
 }
 
-// MEMBER DIRECTORY - READ ONLY FROM NICHA CAM DATABASE
+// MEMBER DIRECTORY - READ / EDIT MEMBER STATS IN NICHA CAM DATABASE
 let memberDirectoryQuery='';
+let memberEditingId='';
 async function renderMembers(force=false) {
   const container=document.getElementById('pageContent');
   container.innerHTML=`
@@ -1571,7 +1569,7 @@ async function renderMembers(force=false) {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
         <div>
           <h2 style="margin:0;color:var(--green)">สมาชิก Nicha Cam</h2>
-          <p style="margin:5px 0 0;color:var(--muted);font-size:13px">ข้อมูลสมาชิกจาก Nicha Cam Database · อ่านข้อมูลอย่างเดียว</p>
+          <p style="margin:5px 0 0;color:var(--muted);font-size:13px">จัดการระดับสมาชิก แต้มคงเหลือ แต้มสะสม และจำนวนครั้งสะสม</p>
         </div>
         <button class="btn btn-light" id="refreshMembersBtn" onclick="renderMembers(true)">↻ รีเฟรชรายชื่อ</button>
       </div>
@@ -1613,55 +1611,79 @@ function drawMemberDirectory() {
   if(!list) return;
   const q=String(memberDirectoryQuery||'').trim().toLowerCase();
   const members=memberListCache.filter(m=>String(m.name||'').toLowerCase().includes(q)||String(m.phone||'').toLowerCase().includes(q));
+  window._nichaVisibleDirectoryMembers=members;
   const total=document.getElementById('memberTotalCount');
   const filtered=document.getElementById('memberFilteredCount');
   if(total) total.textContent=memberListCache.length.toLocaleString('th-TH');
   if(filtered) filtered.textContent=members.length.toLocaleString('th-TH');
   if(!members.length){list.innerHTML='<div class="member-picker-empty">'+(q?'ไม่พบสมาชิกที่ตรงกับคำค้นหา':'ยังไม่มีข้อมูลสมาชิกใน Nicha Cam Database')+'</div>';return;}
-  list.innerHTML=members.map(m=>`
-    <div style="border:1px solid var(--border);border-radius:13px;padding:14px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start">
+  list.innerHTML=members.map((m,index)=>{
+    const editing=memberEditingId && String(memberEditingId)===String(m.lineUserId);
+    const level=String(m.level||'Bronze');
+    const points=Number(m.points||0);
+    const lifetime=Number(m.lifetimePoints||0);
+    const visits=Number(m.visitCount||0);
+    const levelOptions=['Bronze','Silver','Gold','Platinum','VIP'];
+    if(level && !levelOptions.includes(level)) levelOptions.unshift(level);
+    const levelSelectOptions=levelOptions.map(v=>`<option value="${escapeHTML(v)}" ${level===v?'selected':''}>${escapeHTML(v)}</option>`).join('');
+    return `
+    <div style="border:1px solid var(--border);border-radius:15px;padding:15px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;box-shadow:var(--shadow)">
       <div style="min-width:0">
-        <div style="font-weight:700;color:var(--green);overflow-wrap:anywhere">${escapeHTML(m.name||'ไม่ระบุชื่อ')}</div>
+        <div style="font-weight:700;color:var(--green);overflow-wrap:anywhere;font-size:16px">${escapeHTML(m.name||'ไม่ระบุชื่อ')}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px">โทร. ${escapeHTML(m.phone||'-')} · สมัครเมื่อ ${escapeHTML(m.joinedAt||m.registerDate||'-')}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:5px">LINE User ID: ${escapeHTML(m.lineUserId||'-')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">LINE User ID: ${escapeHTML(m.lineUserId||'-')}</div>
       </div>
       <span class="member-picker-status">${escapeHTML(m.status||'ไม่ระบุสถานะ')}</span>
-      <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap">
-        <span class="member-pill">ระดับ ${escapeHTML(m.level||'-')}</span>
-        <span class="member-pill">แต้มคงเหลือ ${Number(m.points||0).toLocaleString('th-TH')}</span>
-        <span class="member-pill">แต้มสะสม ${Number(m.lifetimePoints||0).toLocaleString('th-TH')}</span>
-      </div>
-    </div>`).join('');
+      ${editing ? `
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;background:#f8f7f1;padding:13px;border-radius:12px">
+          <div class="field"><label>ระดับสมาชิก</label><select id="memberEditLevel">${levelSelectOptions}</select></div>
+          <div class="field"><label>แต้มคงเหลือ</label><input id="memberEditPoints" type="number" min="0" step="1" value="${points}"></div>
+          <div class="field"><label>แต้มสะสม</label><input id="memberEditLifetime" type="number" min="0" step="1" value="${lifetime}"></div>
+          <div class="field"><label>จำนวนครั้งสะสม</label><input id="memberEditVisits" type="number" min="0" step="1" value="${visits}"></div>
+          <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="saveMemberStatsBtn" onclick="saveMemberStats(${index})">บันทึก</button>
+            <button class="btn btn-light" onclick="cancelMemberEdit()">ยกเลิก</button>
+          </div>
+        </div>` : `
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px">
+          <div style="background:#f5f3e9;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">ระดับสมาชิก</div><strong style="color:#98732b">${escapeHTML(level)}</strong></div>
+          <div style="background:#f1f7f1;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">แต้มคงเหลือ</div><strong style="color:var(--green)">${points.toLocaleString('th-TH')} แต้ม</strong></div>
+          <div style="background:#f1f7f1;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">แต้มสะสม</div><strong style="color:var(--green)">${lifetime.toLocaleString('th-TH')} แต้ม</strong></div>
+          <div style="background:#f5f3e9;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">จำนวนครั้งสะสม</div><strong style="color:#98732b">${visits.toLocaleString('th-TH')} ครั้ง</strong></div>
+          <div style="grid-column:1/-1"><button class="btn btn-light" onclick="editMember(${index})" ${m.lineUserId?'':'disabled title="สมาชิกนี้ไม่มี LINE User ID จึงไม่สามารถระบุแถวเพื่อบันทึกได้"'}>✎ แก้ไขข้อมูลสมาชิก</button></div>
+        </div>`}
+    </div>`;
+  }).join('');
 }
-
-// เปิด NICHA CRM Staff Center ภายในหน้า NICHA SPA Management
-function renderStaffCenter() {
-  const container=document.getElementById('pageContent');
-  const staffCenterUrl='https://jifenii11-cell.github.io/nicha-crm/staff-center.html';
-
-  container.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
-      <div>
-        <h2 style="margin:0;color:var(--green)">ศูนย์จัดการพนักงาน</h2>
-        <p style="margin:4px 0 0;color:var(--muted)">NICHA CRM · Staff Management Center</p>
-      </div>
-      <button class="btn btn-light" type="button" onclick="window.open('${staffCenterUrl}','_blank','noopener')">
-        เปิดในหน้าต่างใหม่ ↗
-      </button>
-    </div>
-    <div style="height:calc(100vh - 190px);min-height:650px;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
-      <iframe
-        src="${staffCenterUrl}"
-        title="NICHA CRM Staff Center"
-        style="display:block;width:100%;height:100%;border:0;background:#fff"
-        loading="lazy"
-        referrerpolicy="strict-origin-when-cross-origin">
-      </iframe>
-    </div>
-    <p style="margin:10px 2px 0;color:var(--muted);font-size:12px">
-      หากหน้าไม่แสดงภายในกรอบ ให้กด “เปิดในหน้าต่างใหม่” เนื่องจากเว็บไซต์ปลายทางอาจจำกัดการฝัง iframe
-    </p>
-  `;
+function editMember(index){
+  const member=(window._nichaVisibleDirectoryMembers||[])[index];
+  if(!member || !member.lineUserId){notify('สมาชิกนี้ไม่มี LINE User ID ไม่สามารถแก้ไขได้','error');return;}
+  memberEditingId=String(member.lineUserId);
+  drawMemberDirectory();
+}
+function cancelMemberEdit(){memberEditingId='';drawMemberDirectory();}
+async function saveMemberStats(index){
+  const member=(window._nichaVisibleDirectoryMembers||[])[index];
+  if(!member || !member.lineUserId){notify('ไม่พบรหัสสมาชิกสำหรับบันทึก','error');return;}
+  const level=document.getElementById('memberEditLevel').value;
+  const pointsInput=document.getElementById('memberEditPoints');
+  const lifetimeInput=document.getElementById('memberEditLifetime');
+  const visitsInput=document.getElementById('memberEditVisits');
+  const points=Number(pointsInput.value), lifetimePoints=Number(lifetimeInput.value), visitCount=Number(visitsInput.value);
+  if(!level || [points,lifetimePoints,visitCount].some(v=>!Number.isSafeInteger(v)||v<0)){
+    notify('กรุณากรอกแต้มและจำนวนครั้งเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป','error');return;
+  }
+  const btn=document.getElementById('saveMemberStatsBtn');
+  if(btn){btn.disabled=true;btn.textContent='กำลังบันทึก...';}
+  try{
+    const result=await api('saveMemberStats',{member:{lineUserId:member.lineUserId,level,points,lifetimePoints,visitCount}});
+    if(!result.ok)throw new Error(result.error||'บันทึกข้อมูลสมาชิกไม่สำเร็จ');
+    const target=memberListCache.find(m=>String(m.lineUserId)===String(member.lineUserId));
+    if(target){target.level=level;target.points=points;target.lifetimePoints=lifetimePoints;target.visitCount=visitCount;}
+    memberEditingId='';
+    drawMemberDirectory();
+    notify('บันทึกข้อมูลสมาชิกเรียบร้อยแล้ว');
+  }catch(err){notify(err.message,'error');if(btn){btn.disabled=false;btn.textContent='บันทึก';}}
 }
 
 function renderBooking() {
