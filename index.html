@@ -1117,6 +1117,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
       <button class="nav-btn" data-page="booking" onclick="showPage('booking')"><span class="nav-icon">▦</span>Booking จองคิว</button>
       <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
+      <button class="nav-btn" data-page="electricity" onclick="showPage('electricity')"><span class="nav-icon">ϟ</span>บันทึกการใช้ไฟฟ้า</button>
       <button class="nav-btn" data-page="extensionSettings" onclick="showPage('extensionSettings')"><span class="nav-icon">฿</span>ตั้งค่าค่ามือต่อเวลา</button>
       <button class="nav-btn" data-page="members" onclick="showPage('members')"><span class="nav-icon">♙</span>สมาชิก Nicha Cam</button>
       <button class="nav-btn" data-page="staff-ccenter" onclick="showPage('staff-ccenter')"><span class="nav-icon">♙</span>ศูนย์จัดการพนักงาน</button>
@@ -1518,6 +1519,7 @@ function showPage(page) {
     services:'เมนูบริการ',
     booking:'Booking จองคิว',
     report:'รายงาน',
+    electricity:'บันทึกการใช้ไฟฟ้า',
     extensionSettings:'ตั้งค่าค่ามือต่อเวลา',
     members:'สมาชิก Nicha Cam',
     'staff-ccenter':'ศูนย์จัดการพนักงาน'
@@ -1531,6 +1533,7 @@ function showPage(page) {
   if(page==='services') renderServices();
   if(page==='booking') renderBooking();
   if(page==='report') renderReport();
+  if(page==='electricity') renderElectricity();
   if(page==='extensionSettings') renderExtensionSettings();
   if(page==='members') renderMembers();
   if(page==='staff-ccenter') renderStaffCenter();
@@ -1730,6 +1733,90 @@ function renderStaffCenter() {
   `;
 }
 
+
+// ===== ELECTRICITY TRACKING =====
+let electricityCache={readings:[],bills:[]};
+function moneyTHB(value){return Number(value||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function electricityDateLabel(value){
+  if(!value)return '-';
+  const d=new Date(String(value).slice(0,10)+'T00:00:00');
+  if(Number.isNaN(d.getTime()))return value;
+  return [String(d.getDate()).padStart(2,'0'),String(d.getMonth()+1).padStart(2,'0'),d.getFullYear()].join('/');
+}
+async function renderElectricity(){
+  const c=document.getElementById('pageContent');
+  c.innerHTML=`<div class="panel" style="padding:20px">
+    <div class="section-head"><div><h2 style="margin:0;color:var(--green)">บันทึกการใช้ไฟฟ้า</h2><p style="margin:5px 0;color:var(--muted)">บันทึกเลขมิเตอร์สะสม พร้อมราคาต่อหน่วยและสรุปค่าใช้จ่าย</p></div><button class="btn btn-light" onclick="renderElectricity()">↻ รีเฟรช</button></div>
+    <div class="form-grid" style="margin:16px 0">
+      <div class="field"><label>วันที่อ่านมิเตอร์ (ค.ศ.)</label><input id="elecDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label>เลขมิเตอร์สะสม</label><input id="elecMeter" type="number" min="0" step="0.01" placeholder="เลขตามหน้ามิเตอร์"></div>
+      <div class="field"><label>ราคาต่อหน่วย (บาท)</label><input id="elecRate" type="number" min="0" step="0.01" placeholder="เช่น 4.50"></div>
+      <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="elecNote" placeholder="เช่น รอบบิล / ผู้จดมิเตอร์"></div>
+    </div>
+    <div id="elecPreview" style="padding:12px 15px;border-radius:12px;background:#f2f5ed;color:var(--green);margin-bottom:14px">กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-primary" id="saveElecReadingBtn" onclick="saveElectricityReading()">บันทึกเลขมิเตอร์</button><button class="btn btn-light" onclick="exportElectricityExcel()">ส่งออก Excel</button></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <div class="section-head"><div><h2 style="margin:0;color:var(--green)">ประวัติการอ่านมิเตอร์</h2><p style="margin:5px 0;color:var(--muted)">จำนวนที่ใช้ = มิเตอร์ครั้งนี้ − มิเตอร์ครั้งก่อน</p></div></div>
+    <div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse"><thead><tr><th>วัน/เดือน/ปี ค.ศ.</th><th>มิเตอร์</th><th>หน่วยละ</th><th>จำนวนที่ใช้</th><th>ผลรวม</th></tr></thead><tbody id="elecReadingRows"><tr><td colspan="5">กำลังโหลด...</td></tr></tbody></table></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <h2 style="margin:0 0 12px;color:var(--green)">สรุปการใช้ไฟฟ้ารายเดือน</h2>
+    <div style="overflow:auto"><table style="width:100%;min-width:520px;border-collapse:collapse"><thead><tr><th>เดือน</th><th>จำนวนหน่วยที่ใช้</th><th>ค่าใช้จ่ายจากมิเตอร์</th></tr></thead><tbody id="elecMonthlyRows"></tbody></table></div>
+  </div>
+  <div class="panel" style="padding:20px;margin-top:16px">
+    <h2 style="margin:0 0 12px;color:var(--green)">บันทึกบิลค่าไฟรายเดือน</h2>
+    <div class="form-grid"><div class="field"><label>เดือน</label><input id="elecBillMonth" type="month" value="${new Date().toISOString().slice(0,7)}"></div><div class="field"><label>จำนวนหน่วยตามบิล</label><input id="elecBillUnits" type="number" min="0" step="0.01"></div><div class="field"><label>ยอดค่าไฟ (บาท)</label><input id="elecBillAmount" type="number" min="0" step="0.01"></div><div class="field"><label>สถานะ</label><select id="elecBillStatus"><option>รอชำระ</option><option>ชำระแล้ว</option></select></div></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="saveElectricityBill()">บันทึกบิลรายเดือน</button></div>
+    <div style="overflow:auto;margin-top:16px"><table style="width:100%;min-width:620px;border-collapse:collapse"><thead><tr><th>เดือน</th><th>หน่วย</th><th>ยอดค่าไฟ</th><th>สถานะ</th></tr></thead><tbody id="elecBillRows"></tbody></table></div>
+  </div>`;
+  try{
+    const result=await api('getElectricityData');
+    if(!result.ok)throw new Error(result.error||'โหลดข้อมูลค่าไฟไม่สำเร็จ');
+    electricityCache={readings:result.readings||[],bills:result.bills||[]};
+    drawElectricityTables();
+    ['elecMeter','elecRate'].forEach(id=>document.getElementById(id).addEventListener('input',updateElectricityPreview));
+    document.getElementById('elecDate').addEventListener('change',updateElectricityPreview);
+    updateElectricityPreview();
+  }catch(err){notify(err.message,'error');}
+}
+function drawElectricityTables(){
+  const rows=electricityCache.readings||[];
+  const body=document.getElementById('elecReadingRows');if(!body)return;
+  body.innerHTML=rows.length?rows.map(r=>`<tr><td>${escapeHTML(electricityDateLabel(r.readingDate))}</td><td>${Number(r.meterValue||0).toLocaleString('th-TH')}</td><td>${moneyTHB(r.unitPrice)}</td><td>${r.unitsUsed===''||r.unitsUsed===null?'-':Number(r.unitsUsed||0).toLocaleString('th-TH')}</td><td>${r.amount===undefined?'-':moneyTHB(r.amount)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:20px">ยังไม่มีประวัติการอ่านมิเตอร์</td></tr>';
+  const monthly=document.getElementById('elecMonthlyRows');
+  if(monthly){
+    const totals={};
+    rows.forEach(r=>{const month=String(r.readingDate||'').slice(0,7);if(!month)return;if(!totals[month])totals[month]={units:0,amount:0,hasAmount:false};if(r.unitsUsed!==''&&r.unitsUsed!==null&&r.unitsUsed!==undefined){totals[month].units+=Number(r.unitsUsed||0);if(r.amount!==''&&r.amount!==null&&r.amount!==undefined){totals[month].amount+=Number(r.amount||0);totals[month].hasAmount=true;}}});
+    const months=Object.keys(totals).sort().reverse();
+    monthly.innerHTML=months.length?months.map(m=>`<tr><td>${escapeHTML(m)}</td><td>${totals[m].units.toLocaleString('th-TH')}</td><td>${totals[m].hasAmount?moneyTHB(totals[m].amount):'-'}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;padding:18px">ยังไม่มีข้อมูลสำหรับสรุปรายเดือน</td></tr>';
+  }
+  const bills=document.getElementById('elecBillRows');if(bills)bills.innerHTML=(electricityCache.bills||[]).map(b=>`<tr><td>${escapeHTML(b.billMonth||'-')}</td><td>${Number(b.unitsUsed||0).toLocaleString('th-TH')}</td><td>${moneyTHB(b.amount)}</td><td>${escapeHTML(b.status||'')}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:18px">ยังไม่มีบิลค่าไฟ</td></tr>';
+}
+function updateElectricityPreview(){
+  const meter=Number(document.getElementById('elecMeter')?.value),rate=Number(document.getElementById('elecRate')?.value);
+  const previous=(electricityCache.readings||[]).filter(r=>String(r.readingDate||'')<(document.getElementById('elecDate')?.value||'')).sort((a,b)=>String(b.readingDate||'').localeCompare(String(a.readingDate||'')))[0];
+  const box=document.getElementById('elecPreview');if(!box)return;
+  if(!Number.isFinite(meter)||!document.getElementById('elecMeter').value||!Number.isFinite(rate)||!document.getElementById('elecRate').value){box.textContent='กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก';return;}
+  const used=previous?meter-Number(previous.meterValue||0):null;
+  box.textContent=previous?(used<0?'เลขมิเตอร์ต้องไม่น้อยกว่าครั้งก่อน':`ครั้งก่อน ${Number(previous.meterValue).toLocaleString('th-TH')} หน่วย | ใช้ไป ${used.toLocaleString('th-TH')} หน่วย | รวม ${moneyTHB(used*rate)} บาท`):'เป็นการบันทึกครั้งแรก ยังไม่มีเลขครั้งก่อนสำหรับคำนวณหน่วยที่ใช้';
+}
+async function saveElectricityReading(){
+  const reading={readingDate:document.getElementById('elecDate').value,meterValue:document.getElementById('elecMeter').value,unitPrice:document.getElementById('elecRate').value,note:document.getElementById('elecNote').value};
+  const btn=document.getElementById('saveElecReadingBtn');btn.disabled=true;
+  try{const r=await api('saveElectricityReading',{reading});if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ');notify('บันทึกเลขมิเตอร์เรียบร้อยแล้ว');await renderElectricity();}
+  catch(e){notify(e.message,'error');}finally{btn.disabled=false;}
+}
+async function saveElectricityBill(){
+  const bill={billMonth:document.getElementById('elecBillMonth').value,unitsUsed:document.getElementById('elecBillUnits').value,amount:document.getElementById('elecBillAmount').value,status:document.getElementById('elecBillStatus').value};
+  try{const r=await api('saveElectricityBill',{bill});if(!r.ok)throw new Error(r.error||'บันทึกบิลไม่สำเร็จ');notify('บันทึกบิลค่าไฟแล้ว');await renderElectricity();}catch(e){notify(e.message,'error');}
+}
+function exportElectricityExcel(){
+  const headers=['วัน/เดือน/ปี ค.ศ.','มิเตอร์','หน่วยละ','จำนวนที่ใช้','ผลรวม'];
+  const lines=[headers,...(electricityCache.readings||[]).map(r=>[electricityDateLabel(r.readingDate),r.meterValue,r.unitPrice,r.unitsUsed,r.amount])];
+  const csv='\ufeff'+lines.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='NICHA-SPA-Electricity-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+}
 
 function renderBooking() {
   const container=document.getElementById('pageContent');
@@ -3111,6 +3198,7 @@ async function syncShopLive() {
       else if(currentPage==='staff') renderStaff();
       else if(currentPage==='services') renderServices();
       else if(currentPage==='report') renderReport();
+      else if(currentPage==='electricity') renderElectricity();
       liveShopRenderPending=false;
     }
   } catch(err) {
