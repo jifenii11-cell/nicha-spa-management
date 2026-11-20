@@ -2517,8 +2517,7 @@ function renderEmployeePickerList(containerId, selectable) {
         <div class="employee-picker-dashboard-card ${busy?'unavailable':'available'}">
           <span class="employee-picker-name">${name}</span>
           <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'กำลังนวด':'ว่าง'}</span>
-          <span class="employee-picker-phone">${phone?`☎ ${safePhone}`:'ไม่มีเบอร์โทร'}</span>
-          ${phoneDigits?`<a class="employee-picker-call" href="tel:${escapeHTML(phoneDigits)}" onclick="event.stopPropagation()">โทรติดต่อ</a>`:''}
+                    <span class="employee-picker-phone">${phone?`☎ ${safePhone}`:'ไม่มีเบอร์โทร'}</span>
         </div>`;
     }
     return `
