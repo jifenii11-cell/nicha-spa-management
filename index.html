@@ -957,11 +957,18 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .employee-picker-item.available:hover { border-color:var(--gold); background:#fffdf6; }
 .employee-picker-item.chosen { border:2px solid #23865a; background:#edf7ef; color:#17613b; box-shadow:0 0 0 2px #23865a18; }
 .extra-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.extra-time-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:7px; }
+.extra-time-card { min-width:0;min-height:76px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--green);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font:inherit;transition:all .15s ease; }
+.extra-time-card b { font-size:22px;line-height:1.2; }
+.extra-time-card span { font-size:12px;color:var(--muted); }
+.extra-time-card.selected { border:2px solid var(--gold);background:#fbf6e9;box-shadow:0 0 0 2px rgba(190,155,76,.12); }
+.extra-time-card:focus-visible { outline:2px solid var(--green);outline-offset:2px; }
+
 .extra-staff-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;max-height:42vh;overflow:auto;padding:2px; }
 .extra-staff-card { min-height:76px;border:1px solid var(--border);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 4px;color:var(--text); }
 .extra-staff-card.selected { border:2px solid #23865a;background:#edf7ef;color:#17613b; }
 .extra-staff-card.busy { opacity:.45; }
-@media(max-width:650px){.extra-form-grid{grid-template-columns:1fr}.extra-staff-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.extra-staff-card{font-size:11px;min-height:68px}}
+@media(max-width:650px){.extra-form-grid{grid-template-columns:1fr}.extra-time-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.extra-time-card{min-height:68px}.extra-time-card b{font-size:19px}.extra-staff-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.extra-staff-card{font-size:11px;min-height:68px}}
 .employee-picker-item.unavailable {
   background:#16a34a; color:#fff; border-color:#15803d;
   cursor:not-allowed; opacity:1;
@@ -1276,7 +1283,15 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
           <button class="close" type="button" onclick="hideExtraForm()">×</button>
         </div>
         <div id="extraExtendFields" class="extra-form-grid hidden">
-          <div class="field"><label>ระยะเวลาที่ต่อ</label><select id="extraMinutes" onchange="updateExtensionPriceFromStaffRate()"><option value="30">30 นาที</option><option value="60">60 นาที</option><option value="90">90 นาที</option><option value="120">120 นาที</option></select></div>
+          <div class="field extra-time-field"><label>เลือกระยะเวลาที่ต้องการต่อ</label>
+            <div id="extraTimeGrid" class="extra-time-grid">
+              <button type="button" class="extra-time-card selected" data-minutes="30" onclick="selectExtensionMinutes(30)"><b>30</b><span>นาที</span></button>
+              <button type="button" class="extra-time-card" data-minutes="60" onclick="selectExtensionMinutes(60)"><b>60</b><span>นาที</span></button>
+              <button type="button" class="extra-time-card" data-minutes="90" onclick="selectExtensionMinutes(90)"><b>90</b><span>นาที</span></button>
+              <button type="button" class="extra-time-card" data-minutes="120" onclick="selectExtensionMinutes(120)"><b>120</b><span>นาที</span></button>
+            </div>
+            <select id="extraMinutes" class="hidden" aria-hidden="true" tabindex="-1" onchange="updateExtensionPriceFromStaffRate()"><option value="30">30 นาที</option><option value="60">60 นาที</option><option value="90">90 นาที</option><option value="120">120 นาที</option></select>
+          </div>
           <div class="field"><label>ราคา / ค่ามือ (บาท)</label><input id="extraPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="ดึงค่ามือจากการตั้งค่าอัตโนมัติ"><small id="extraPriceHint" style="color:var(--muted)">ระบบจะนำค่ามือที่ตั้งไว้ตามระยะเวลามาใส่ให้อัตโนมัติ</small></div>
         </div>
         <div id="extraServiceFields" class="field hidden"><label>เลือกคอร์สที่เพิ่ม</label><select id="extraServiceSelect"></select><small style="color:var(--muted)">เวลาและราคาจะดึงจากรายการบริการ</small></div>
@@ -2706,6 +2721,7 @@ function showExtraForm(mode){
   if(!extend){const services=(state.services||[]).filter(x=>active(x.active));document.getElementById('extraServiceSelect').innerHTML=buildGroupedServiceOptions(services);}
   renderExtraStaffGrid();
   if(extend){
+    selectExtensionMinutes(Number(document.getElementById('extraMinutes')?.value||30));
     const priceInput=document.getElementById('extraPrice');
     const hint=document.getElementById('extraPriceHint');
     priceInput.value='';
@@ -2722,6 +2738,16 @@ async function loadExtensionStaffRates(){
   if(!r || !r.ok || !r.rates) throw new Error(r?.error||'ไม่พบข้อมูลค่ามือ');
   extensionStaffRatesCache=r.rates;
   return extensionStaffRatesCache;
+}
+function selectExtensionMinutes(minutes){
+  const select=document.getElementById('extraMinutes');
+  if(!select)return;
+  select.value=String(minutes);
+  document.querySelectorAll('#extraTimeGrid .extra-time-card').forEach(card=>{
+    card.classList.toggle('selected',Number(card.dataset.minutes)===Number(minutes));
+    card.setAttribute('aria-pressed',Number(card.dataset.minutes)===Number(minutes)?'true':'false');
+  });
+  updateExtensionPriceFromStaffRate();
 }
 function updateExtensionPriceFromStaffRate(){
   const minutes=Number(document.getElementById('extraMinutes')?.value||0);
