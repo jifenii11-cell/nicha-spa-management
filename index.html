@@ -1639,6 +1639,8 @@ function drawMemberDirectory() {
       <span class="member-picker-status">${escapeHTML(m.status||'ไม่ระบุสถานะ')}</span>
       ${editing ? `
         <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;background:#f8f7f1;padding:13px;border-radius:12px">
+          <div class="field"><label>ชื่อสมาชิก</label><input id="memberEditName" type="text" maxlength="120" value="${escapeHTML(m.name||'')}"></div>
+          <div class="field"><label>เบอร์โทรศัพท์</label><input id="memberEditPhone" type="tel" maxlength="30" value="${escapeHTML(m.phone||'')}"></div>
           <div class="field"><label>ระดับสมาชิก</label><select id="memberEditLevel">${levelSelectOptions}</select></div>
           <div class="field"><label>แต้มคงเหลือ</label><input id="memberEditPoints" type="number" min="0" step="1" value="${points}"></div>
           <div class="field"><label>แต้มสะสม</label><input id="memberEditLifetime" type="number" min="0" step="1" value="${lifetime}"></div>
@@ -1668,21 +1670,24 @@ function cancelMemberEdit(){memberEditingId='';drawMemberDirectory();}
 async function saveMemberStats(index){
   const member=(window._nichaVisibleDirectoryMembers||[])[index];
   if(!member || !member.lineUserId){notify('ไม่พบรหัสสมาชิกสำหรับบันทึก','error');return;}
+  const name=document.getElementById('memberEditName').value.trim();
+  const phone=document.getElementById('memberEditPhone').value.trim();
   const level=document.getElementById('memberEditLevel').value;
   const pointsInput=document.getElementById('memberEditPoints');
   const lifetimeInput=document.getElementById('memberEditLifetime');
   const visitsInput=document.getElementById('memberEditVisits');
   const points=Number(pointsInput.value), lifetimePoints=Number(lifetimeInput.value), visitCount=Number(visitsInput.value);
+  if(!name){notify('กรุณาระบุชื่อสมาชิก','error');return;}
   if(!level || [points,lifetimePoints,visitCount].some(v=>!Number.isSafeInteger(v)||v<0)){
-    notify('กรุณากรอกแต้มและจำนวนครั้งเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป','error');return;
+    notify('กรุณากรอกระดับสมาชิก แต้ม และจำนวนครั้งให้ถูกต้อง (จำนวนเต็มตั้งแต่ 0 ขึ้นไป)','error');return;
   }
   const btn=document.getElementById('saveMemberStatsBtn');
   if(btn){btn.disabled=true;btn.textContent='กำลังบันทึก...';}
   try{
-    const result=await api('saveMemberStats',{member:{lineUserId:member.lineUserId,level,points,lifetimePoints,visitCount}});
+    const result=await api('saveMemberStats',{member:{lineUserId:member.lineUserId,name,phone,level,points,lifetimePoints,visitCount}});
     if(!result.ok)throw new Error(result.error||'บันทึกข้อมูลสมาชิกไม่สำเร็จ');
     const target=memberListCache.find(m=>String(m.lineUserId)===String(member.lineUserId));
-    if(target){target.level=level;target.points=points;target.lifetimePoints=lifetimePoints;target.visitCount=visitCount;}
+    if(target){target.name=name;target.phone=phone;target.level=level;target.points=points;target.lifetimePoints=lifetimePoints;target.visitCount=visitCount;}
     memberEditingId='';
     drawMemberDirectory();
     notify('บันทึกข้อมูลสมาชิกเรียบร้อยแล้ว');
