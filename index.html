@@ -1112,6 +1112,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
       <button class="nav-btn" data-page="booking" onclick="showPage('booking')"><span class="nav-icon">▦</span>Booking จองคิว</button>
       <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
+      <button class="nav-btn" data-page="extensionSettings" onclick="showPage('extensionSettings')"><span class="nav-icon">฿</span>ตั้งค่าค่ามือต่อเวลา</button>
     </nav>
 
     <div class="side-bottom">NICHA SPA · PREMIUM CARE</div>
@@ -1504,7 +1505,8 @@ function showPage(page) {
     staff:'จัดการพนักงาน',
     services:'เมนูบริการ',
     booking:'Booking จองคิว',
-    report:'รายงาน'
+    report:'รายงาน',
+    extensionSettings:'ตั้งค่าค่ามือต่อเวลา'
   };
 
   document.getElementById('pageTitle').textContent=titles[page];
@@ -1515,9 +1517,31 @@ function showPage(page) {
   if(page==='services') renderServices();
   if(page==='booking') renderBooking();
   if(page==='report') renderReport();
+  if(page==='extensionSettings') renderExtensionSettings();
 }
 
 // แสดงหน้า Booking แยกภายในระบบ โดยคงเมนูด้านซ้ายไว้
+async function renderExtensionSettings() {
+  const container=document.getElementById('pageContent');
+  container.innerHTML=`<div class="panel" style="max-width:680px;padding:22px">
+    <h2 style="margin:0 0 8px;color:var(--green)">ตั้งค่าค่ามือหมอนวดเมื่อต่อเวลา</h2>
+    <p style="color:var(--muted);margin:0 0 18px">กำหนดค่ามือที่หมอนวดจะได้รับต่อเวลาที่เพิ่มให้ลูกค้า แยกจากราคาที่เก็บลูกค้า</p>
+    <div class="field" style="max-width:320px"><label>ค่ามือหมอนวด ต่อ 30 นาที (บาท)</label><input id="extensionStaffRate" type="number" min="0" step="1" value="50"></div>
+    <div style="font-size:13px;color:var(--muted);margin:8px 0 18px">ค่าเริ่มต้น 50 บาท / 30 นาที สามารถเปลี่ยนได้ทุกเมื่อ</div>
+    <button class="btn btn-primary" id="saveExtensionSettingsBtn" onclick="saveExtensionSettings()">บันทึกการตั้งค่า</button>
+    <div id="extensionSettingsStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
+  </div>`;
+  try { const r=await api('getExtensionSettings'); if(r.ok) document.getElementById('extensionStaffRate').value=Number(r.staffRate ?? 50); }
+  catch(e){ document.getElementById('extensionSettingsStatus').textContent='โหลดค่าเดิมไม่สำเร็จ: '+e.message; }
+}
+async function saveExtensionSettings(){
+  const input=document.getElementById('extensionStaffRate'); const rate=Number(input.value);
+  if(input.value.trim()===''||!Number.isFinite(rate)||rate<0){notify('กรุณากรอกค่ามือให้ถูกต้อง','error');return;}
+  const btn=document.getElementById('saveExtensionSettingsBtn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
+  try { const r=await api('saveExtensionSettings',{staffRate:rate}); if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ'); document.getElementById('extensionSettingsStatus').textContent='บันทึกแล้ว: '+rate.toLocaleString('th-TH')+' บาท / 30 นาที';notify('บันทึกค่ามือต่อเวลาแล้ว'); }
+  catch(e){notify(e.message,'error');} finally {btn.disabled=false;btn.textContent='บันทึกการตั้งค่า';}
+}
+
 function renderBooking() {
   const container=document.getElementById('pageContent');
   container.innerHTML=`
