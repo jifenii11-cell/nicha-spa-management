@@ -956,6 +956,15 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 .employee-picker-item.available { cursor:pointer; }
 .employee-picker-item.available:hover { border-color:var(--gold); background:#fffdf6; }
 .employee-picker-item.chosen { border:2px solid #23865a; background:#edf7ef; color:#17613b; box-shadow:0 0 0 2px #23865a18; }
+.employee-picker-dashboard-card { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:112px;padding:12px 8px;border:2px solid #b8dfc5;border-radius:14px;background:#eaf8ef;color:#14532d;text-align:center;box-shadow:0 3px 10px rgba(20,83,45,.08); }
+.employee-picker-dashboard-card.unavailable { border-color:#f0b4a8;background:#fff0ed;color:#9f2d20; }
+.employee-picker-dashboard-card .employee-picker-name { font-size:15px;font-weight:700; }
+.employee-picker-dashboard-card .employee-picker-status { font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px; }
+.employee-picker-dashboard-card .employee-picker-status.available { color:#14532d;background:#b9edca; }
+.employee-picker-dashboard-card .employee-picker-status.unavailable { color:#9f2d20;background:#ffd1c8; }
+.employee-picker-phone { font-size:13px;font-weight:600;color:#164e8a;overflow-wrap:anywhere; }
+.employee-picker-call { display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 12px;border-radius:20px;background:#1d65a6;color:#fff;text-decoration:none;font-size:12px;font-weight:700; }
+.employee-picker-call:hover { background:#154b7d; }
 .extra-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
 .extra-time-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:7px; }
 .extra-time-card { min-width:0;min-height:76px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--green);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font:inherit;transition:all .15s ease; }
@@ -1244,7 +1253,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <h2>สถานะพนักงานทั้งหมด</h2>
       <button class="close" onclick="closeDashboardStaffPicker()">×</button>
     </div>
-    <p class="employee-picker-hint">สีขาว = ว่าง · สีเขียว = ไม่ว่าง (กำลังนวด)</p>
+    <p class="employee-picker-hint">สีเขียว = ว่าง · สีแดง = กำลังนวด · แตะโทรติดต่อเพื่อโทรออก</p>
     <div id="dashboardStaffPickerList" class="employee-picker-list"></div>
     <div class="form-actions">
       <button class="btn btn-light" onclick="closeDashboardStaffPicker()">ปิด</button>
@@ -2500,6 +2509,18 @@ function renderEmployeePickerList(containerId, selectable) {
     const name=escapeHTML(employee.name||'ไม่ระบุชื่อ');
     const id=escapeHTML(employee.id);
     const canChoose=selectable && !busy;
+    const phone=String(employee.phone||employee.phoneNumber||employee.tel||'').trim();
+    const safePhone=escapeHTML(phone);
+    const phoneDigits=phone.replace(/[^0-9+]/g,'');
+    if(!selectable) {
+      return `
+        <div class="employee-picker-dashboard-card ${busy?'unavailable':'available'}">
+          <span class="employee-picker-name">${name}</span>
+          <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'กำลังนวด':'ว่าง'}</span>
+          <span class="employee-picker-phone">${phone?`☎ ${safePhone}`:'ไม่มีเบอร์โทร'}</span>
+          ${phoneDigits?`<a class="employee-picker-call" href="tel:${escapeHTML(phoneDigits)}" onclick="event.stopPropagation()">โทรติดต่อ</a>`:''}
+        </div>`;
+    }
     return `
       <button type="button" class="employee-picker-item ${busy?'unavailable':'available'}"
         ${canChoose?'onclick="selectBookingEmployee(\''+id+'\')"':''}
@@ -2509,7 +2530,6 @@ function renderEmployeePickerList(containerId, selectable) {
       </button>`;
   }).join('');
 }
-
 function openEmployeePicker() {
   renderEmployeePickerList('employeePickerList',true);
   document.getElementById('employeePickerModal').classList.remove('hidden');
