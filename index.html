@@ -1,208 +1,2787 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#173f32">
-<title>NICHA SPA | Booking Calendar</title>
+<title>NICHA SPA | Management</title>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
-:root{--green:#173f32;--green2:#245b47;--gold:#c8a45d;--cream:#f7f4ec;--ink:#26352e;--muted:#78847d;--line:#e6e5dc;--white:#fff;--red:#b94b45;--shadow:0 12px 34px rgba(25,54,42,.10)}
-*{box-sizing:border-box}body{margin:0;background:#f4f5f1;color:var(--ink);font-family:Kanit,sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:0}
-.topbar{background:linear-gradient(115deg,#153c30,#285c47);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 5px 20px #173f3220}
-.brand{display:flex;align-items:center;gap:13px}.brand-mark{width:44px;height:44px;border:1px solid #d7bd7d;border-radius:50%;display:grid;place-items:center;color:#e5ca8d;font-family:'Playfair Display';font-size:23px}.brand-title{font-family:'Playfair Display',serif;font-size:21px;letter-spacing:1.2px}.brand-sub{font-size:11px;color:#d9dfd8;letter-spacing:2px}.top-actions{display:flex;align-items:center;gap:10px}.top-btn{background:#ffffff18;border:1px solid #ffffff38;color:white;padding:8px 13px;border-radius:10px}
-.wrap{max-width:1500px;margin:auto;padding:22px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}.toolbar h1{font-size:23px;margin:0;color:var(--green);font-weight:600}.toolbar p{margin:3px 0 0;color:var(--muted);font-size:13px}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn{padding:9px 14px;border-radius:10px;font-weight:500}.btn-green{background:var(--green);color:white}.btn-gold{background:var(--gold);color:#fff}.btn-light{background:white;border:1px solid var(--line);color:var(--ink)}.btn:disabled{opacity:.45;cursor:not-allowed}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 3px 12px #173f3208}.stat small{color:var(--muted)}.stat strong{display:block;color:var(--green);font-size:24px;font-weight:600;margin-top:2px}
-.calendar-card{background:white;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}.cal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}.month-label{font-size:19px;font-weight:600;color:var(--green)}.cal-nav{display:flex;gap:7px;align-items:center}.icon-btn{width:36px;height:36px;border-radius:9px;background:#f3f5f1;color:var(--green);font-size:18px}.view-switch{display:flex;background:#f2f4ef;padding:4px;border-radius:10px;gap:3px}.view-switch button{padding:6px 12px;border-radius:7px;background:transparent;color:var(--muted);font-size:13px}.view-switch button.active{background:white;color:var(--green);box-shadow:0 1px 5px #0001}
-.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.weekday{padding:10px 5px;text-align:center;background:#fafaf7;color:#7a857e;font-size:12px;border-bottom:1px solid var(--line)}.day{min-height:125px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px;min-width:0}.day:nth-child(7n){border-right:0}.day.muted{background:#fafaf8;color:#b5bbb5}.day.today{background:#fbfaf3}.day-number{font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}.today .day-number span:first-child{background:var(--green);color:#fff;width:24px;height:24px;border-radius:50%;display:grid;place-items:center}.event{display:block;width:100%;text-align:left;padding:6px 7px;border-radius:7px;background:#edf4ee;border-left:3px solid #4c8a68;margin:4px 0;color:#244a37;font-size:11px;line-height:1.35;overflow:hidden}.event strong{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.event em{font-style:normal;color:#63786a}.event.done{background:#f1f1ed;border-color:#a5aaa2;color:#70786f}.event.more{background:#f7f4e9;border-color:var(--gold);color:#80662f;text-align:center}
-.list-view{padding:8px 16px}.list-day{padding:12px 0;border-bottom:1px solid var(--line)}.list-day h3{margin:0 0 8px;color:var(--green);font-size:14px}.list-event{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:6px 0}.empty{padding:35px 15px;text-align:center;color:var(--muted)}
-.legend{display:flex;gap:14px;flex-wrap:wrap;padding:12px 18px;color:var(--muted);font-size:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4c8a68;margin-right:5px}.dot.grey{background:#a5aaa2}
-.overlay{position:fixed;inset:0;background:#12251f88;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}.overlay.show{display:flex}.modal{background:white;width:min(620px,100%);max-height:92vh;overflow:auto;border-radius:18px;box-shadow:0 24px 70px #0003}.modal-head{padding:17px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.modal-head h2{margin:0;font-size:19px;color:var(--green)}.close{background:#f2f3ef;border-radius:50%;width:32px;height:32px;font-size:18px;color:#68756c}.modal-body{padding:20px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.detail{background:#f7f8f5;border-radius:10px;padding:10px 12px;min-width:0}.detail small{display:block;color:var(--muted);font-size:11px}.detail strong{font-size:14px;font-weight:500;overflow-wrap:anywhere}.full{grid-column:1/-1}.section-title{font-weight:600;color:var(--green);margin:18px 0 9px}.field{margin:10px 0}.field label{display:block;font-size:12px;color:#68756c;margin-bottom:5px}.field select,.field input{width:100%;padding:11px 12px;border:1px solid #dfe3db;border-radius:10px;background:white;color:var(--ink)}.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:15px 20px;border-top:1px solid var(--line)}
-.login-screen{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top right,#315e48,#173f32 55%,#102c23)}.login-card{background:white;width:min(390px,100%);padding:30px;border-radius:20px;box-shadow:var(--shadow);text-align:center}.login-card .brand-mark{margin:auto;background:var(--green)}.login-card h2{color:var(--green);margin:14px 0 2px}.login-card p{color:var(--muted);font-size:13px}.login-card input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;margin:12px 0}.login-card button{width:100%}.error{color:var(--red);font-size:12px;min-height:18px}.hidden{display:none!important}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:11px 18px;background:#183e31;color:#fff;border-radius:10px;z-index:20;box-shadow:var(--shadow);max-width:90vw;text-align:center}.toast.error{background:#a9433d;color:white}
-@media(max-width:800px){.wrap{padding:13px}.stats{gap:7px}.stat{padding:10px}.stat strong{font-size:20px}.day{min-height:100px;padding:5px}.event{font-size:10px;padding:5px}.event strong{font-size:10px}.cal-head{padding:12px}.month-label{font-size:16px}}
-@media(max-width:560px){.topbar{padding:13px 15px}.brand-title{font-size:17px}.brand-mark{width:38px;height:38px}.top-actions .top-btn{font-size:11px;padding:7px}.wrap{padding:10px}.toolbar h1{font-size:19px}.stats{grid-template-columns:repeat(3,1fr)}.stat small{font-size:10px}.stat strong{font-size:18px}.day{min-height:78px;padding:3px}.weekday{font-size:10px;padding:8px 2px}.day-number{font-size:11px;margin-bottom:3px}.day-number span:first-child{width:21px;height:21px}.event{padding:4px 3px;margin:3px 0;border-left-width:2px}.event strong{font-size:9px}.event em{font-size:9px}.detail-grid{grid-template-columns:1fr 1fr}.modal-body{padding:14px}.modal-head{padding:14px}.modal-actions{padding:12px}.btn{padding:8px 11px;font-size:13px}}
+
+:root {
+  --green:#173f32;
+  --green2:#245744;
+  --green3:#eaf1eb;
+  --gold:#c6a45c;
+  --gold2:#e8d6a6;
+  --cream:#f8f6ef;
+  --white:#fff;
+  --text:#26352e;
+  --muted:#829087;
+  --border:#e8e8df;
+  --red:#b85d51;
+  --shadow:0 10px 35px rgba(29,55,42,.08);
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:var(--cream);
+  color:var(--text);
+  font-family:'Kanit',sans-serif;
+  font-weight:300;
+}
+
+button,input,select { font:inherit; }
+button { cursor:pointer; }
+.hidden { display:none!important; }
+
+.login-screen {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:radial-gradient(circle at 15% 15%,#476b50 0,transparent 35%),linear-gradient(135deg,#102f27,#1d4938 60%,#876e3d);
+}
+
+.login-card {
+  width:100%;
+  max-width:430px;
+  background:#fffdf8;
+  border-radius:25px;
+  padding:42px 35px;
+  text-align:center;
+  box-shadow:0 25px 80px #071d1880;
+}
+
+.logo-mark {
+  width:76px;
+  height:76px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 17px;
+  color:var(--gold);
+  font-family:'Playfair Display',serif;
+  font-size:29px;
+}
+
+.login-title {
+  font-family:'Playfair Display',serif;
+  font-size:34px;
+  color:var(--green);
+  letter-spacing:3px;
+}
+
+.login-sub {
+  color:var(--gold);
+  letter-spacing:2px;
+  font-size:12px;
+  margin:5px 0 28px;
+}
+
+.login-card input {
+  width:100%;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:14px;
+  outline:none;
+  text-align:center;
+  font-size:17px;
+}
+
+.login-card input:focus { border-color:var(--gold); }
+.login-error { color:var(--red);font-size:13px;min-height:22px; }
+
+.btn {
+  border:0;
+  padding:11px 18px;
+  border-radius:11px;
+  font-weight:400;
+  transition:.2s;
+}
+
+.btn:hover { transform:translateY(-1px);filter:brightness(1.04); }
+.btn-primary { background:var(--green);color:white; }
+.btn-gold { background:var(--gold);color:#fff; }
+.btn-light { background:var(--green3);color:var(--green); }
+.btn-danger { background:#f9e9e6;color:var(--red); }
+.btn-block { width:100%;padding:14px; }
+
+.app { min-height:100vh; }
+
+.sidebar {
+  position:fixed;
+  left:0;
+  top:0;
+  bottom:0;
+  width:245px;
+  background:var(--green);
+  color:white;
+  padding:26px 17px;
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+}
+
+.side-brand {
+  text-align:center;
+  padding:8px 0 28px;
+  border-bottom:1px solid #ffffff20;
+}
+
+.side-brand strong {
+  display:block;
+  font-family:'Playfair Display',serif;
+  font-size:29px;
+  letter-spacing:3px;
+}
+
+.side-brand span {
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--gold2);
+}
+
+.side-label {
+  color:#b5c5b8;
+  font-size:11px;
+  letter-spacing:1px;
+  margin:25px 12px 10px;
+}
+
+.nav-btn {
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:13px 15px;
+  border:0;
+  background:transparent;
+  color:#dce8df;
+  border-radius:11px;
+  text-align:left;
+  margin:3px 0;
+  font-size:14px;
+}
+
+.nav-btn:hover,.nav-btn.active {
+  background:#ffffff18;
+  color:#f0d99e;
+}
+
+.nav-icon { width:22px;text-align:center;font-size:17px; }
+
+.side-bottom {
+  margin-top:auto;
+  color:#aabdb0;
+  font-size:11px;
+  text-align:center;
+  padding:15px;
+}
+
+.main {
+  margin-left:245px;
+  padding:28px 34px;
+  max-width:1600px;
+}
+
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  margin-bottom:27px;
+}
+
+.top-title h1 {
+  margin:0;
+  color:var(--green);
+  font-size:25px;
+  font-weight:500;
+}
+
+.top-title p {
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.top-right { display:flex;align-items:center;gap:12px; }
+.date-label { color:var(--muted);font-size:12px; }
+
+.admin-chip {
+  background:white;
+  padding:9px 14px;
+  border-radius:30px;
+  box-shadow:var(--shadow);
+  font-size:13px;
+}
+
+.welcome {
+  background:linear-gradient(110deg,#173f32,#32634a);
+  color:white;
+  border-radius:20px;
+  padding:25px 30px;
+  margin-bottom:23px;
+  position:relative;
+  overflow:hidden;
+}
+
+.welcome:after {
+  content:"✦";
+  position:absolute;
+  right:35px;
+  top:-35px;
+  font-size:150px;
+  color:#ffffff12;
+}
+
+.welcome h2 {
+  font-family:'Playfair Display',serif;
+  font-size:25px;
+  margin:0 0 5px;
+  font-weight:500;
+}
+
+.welcome p { margin:0;color:#d5e2d8;font-size:13px; }
+
+.stats {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:16px;
+  margin-bottom:25px;
+}
+
+.stat-card {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:19px;
+  box-shadow:var(--shadow);
+}
+
+.stat-top { display:flex;justify-content:space-between;align-items:center; }
+.stat-name { color:var(--muted);font-size:12px; }
+
+.stat-icon {
+  width:35px;
+  height:35px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  background:var(--green3);
+}
+
+.stat-value {
+  color:var(--green);
+  font-size:25px;
+  font-weight:500;
+  margin-top:9px;
+}
+
+.stat-note { font-size:11px;color:var(--muted); }
+
+.section-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:25px 0 14px;
+}
+
+.section-head h2 {
+  margin:0;
+  font-size:18px;
+  color:var(--green);
+  font-weight:500;
+}
+
+.section-head p { margin:3px 0 0;color:var(--muted);font-size:12px; }
+
+.bed-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+
+.bed-card {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:17px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  transition:.2s;
+  cursor:pointer;
+}
+
+.bed-card:hover { transform:translateY(-3px);border-color:var(--gold); }
+.bed-top { display:flex;justify-content:space-between;align-items:center; }
+.bed-name { font-size:17px;font-weight:500;color:var(--green); }
+.bed-area { font-size:11px;color:var(--muted);margin-top:3px; }
+
+.status { padding:5px 10px;border-radius:20px;font-size:11px; }
+.status-free { background:#e8f4e9;color:#39774b; }
+.status-busy { background:#fff0dc;color:#a66a20; }
+
+.bed-action {
+  margin-top:18px;
+  border-top:1px solid var(--border);
+  padding-top:12px;
+  font-size:12px;
+  color:var(--gold);
+}
+
+.panel {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:17px;
+  padding:21px;
+  box-shadow:var(--shadow);
+  margin-bottom:17px;
+}
+
+.form-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+}
+
+.field { display:flex;flex-direction:column;gap:6px; }
+.field label { font-size:12px;color:var(--muted); }
+
+.field input,.field select {
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  outline:none;
+  background:white;
+  color:var(--text);
+}
+
+.field input:focus,.field select:focus { border-color:var(--gold); }
+.full { grid-column:1/-1; }
+.form-actions { display:flex;gap:9px;margin-top:16px;flex-wrap:wrap; }
+.table-wrap { overflow-x:auto; }
+
+table { width:100%;border-collapse:collapse;min-width:600px; }
+th { background:#f5f5ef;color:var(--green);font-size:12px;font-weight:500;text-align:left;padding:13px; }
+td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
+.empty { text-align:center;color:var(--muted);padding:35px; }
+
+.modal-backdrop {
+  position:fixed;
+  inset:0;
+  background:#10251ecc;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+}
+
+.modal {
+  background:white;
+  width:100%;
+  max-width:560px;
+  max-height:90vh;
+  overflow:auto;
+  border-radius:20px;
+  padding:24px;
+  box-shadow:0 25px 80px #0004;
+}
+
+.modal-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.modal-head h2 { margin:0;color:var(--green);font-size:20px; }
+
+.close {
+  border:0;
+  background:#f2f2ec;
+  border-radius:50%;
+  width:34px;
+  height:34px;
+  font-size:19px;
+  color:var(--green);
+}
+
+.checkout-modal {
+  max-width:650px;
+  border:1px solid #e8d6a6;
+  background:linear-gradient(180deg,#fff 0%,#fffdf7 100%);
+}
+
+.checkout-total {
+  background:linear-gradient(120deg,#173f32,#32634a);
+  color:#fff;
+  border-radius:16px;
+  padding:18px;
+  margin:14px 0;
+}
+
+.checkout-total small { color:#d9e8dc; }
+.checkout-total strong { display:block;font-size:32px;font-weight:600; }
+
+.checkout-lines { display:grid;gap:9px;margin:14px 0; }
+
+.checkout-line {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  font-size:14px;
+}
+
+.checkout-line b { font-weight:500; }
+
+.payment-options {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:10px 0;
+}
+
+.payment-option {
+  border:1.5px solid var(--border);
+  border-radius:13px;
+  padding:13px;
+  text-align:center;
+  background:#fff;
+  color:var(--green);
+  font-weight:500;
+}
+
+.payment-option.selected {
+  border-color:var(--gold);
+  background:#f8f3e6;
+  box-shadow:0 0 0 2px #c6a45c22;
+}
+
+.payment-option input { accent-color:var(--green);margin-right:6px; }
+
+.payment-fields {
+  background:#f7f8f3;
+  border-radius:13px;
+  padding:14px;
+  margin-top:10px;
+}
+
+.change-box {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#eaf3eb;
+  color:#17613d;
+  border-radius:11px;
+  padding:12px 14px;
+  margin-top:10px;
+  font-weight:500;
+}
+
+.share-table {
+  width:100%;
+  min-width:0;
+  margin-top:8px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.share-table th,.share-table td { padding:10px;font-size:13px; }
+.share-table th { background:#f4f4ed; }
+
+.checkout-actions { display:flex;gap:9px;margin-top:18px; }
+.checkout-actions button { flex:1; }
+
+.report-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+
+.report-card { padding:20px;border-radius:15px;background:#f5f6ef; }
+.report-card span { font-size:12px;color:var(--muted); }
+.report-card strong { display:block;margin-top:7px;color:var(--green);font-size:24px; }
+.report-filter { display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin-bottom:16px; }
+.report-filter label { display:flex;flex-direction:column;gap:6px;min-width:190px;font-size:13px;color:var(--muted); }
+.report-filter select,.report-filter input { min-height:42px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:white;color:var(--text);font:inherit; }
+.report-period-label { padding:10px 0;color:var(--muted);font-size:13px; }
+.muted-small { color:var(--muted);font-size:11px;margin-top:3px; }
+.payment-tag { display:inline-block;padding:4px 9px;border-radius:20px;font-size:12px;white-space:nowrap; }
+.payment-tag.cash { background:#e8f2e9;color:#27623b; }
+.payment-tag.transfer { background:#e8effa;color:#315b91; }
+.report-detail-table { min-width:900px; }
+.empty-cell { text-align:center;padding:28px;color:var(--muted); }
+
+
+.toast {
+  position:fixed;
+  bottom:25px;
+  right:25px;
+  max-width:min(420px,calc(100vw - 30px));
+  background:var(--green);
+  color:white;
+  padding:13px 20px;
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  z-index:100;
+  font-size:13px;
+  animation:toastIn .22s ease-out;
+}
+
+.toast.toast-error { background:#a83f35; }
+
+@keyframes toastIn {
+  from { opacity:0;transform:translateY(10px); }
+  to { opacity:1;transform:translateY(0); }
+}
+
+.loading { opacity:.6;pointer-events:none; }
+
+/* สถานะการ์ดเตียงเดิม */
+.bed-card-free {
+  background:#fff!important;
+  color:#374151!important;
+  border:1px solid #e5e8df!important;
+}
+
+.bed-card-busy {
+  background:#16a34a!important;
+  color:#fff!important;
+  border:1px solid #15803d!important;
+  box-shadow:0 8px 24px rgba(22,163,74,.22);
+}
+
+.bed-card-busy:hover { border-color:#15803d!important; }
+
+.bed-card-busy .bed-name,
+.bed-card-busy .bed-area,
+.bed-card-busy .bed-action {
+  color:#fff!important;
+  border-color:rgba(255,255,255,.35)!important;
+}
+
+.bed-card-busy .status-busy {
+  background:#fff!important;
+  color:#15803d!important;
+}
+
+.bed-card-prepared {
+  background:#fff4c2!important;
+  color:#6b4e00!important;
+  border:1px solid #e8c547!important;
+}
+
+.bed-card-prepared .bed-name,
+.bed-card-prepared .bed-area,
+.bed-card-prepared .bed-action {
+  color:#765900!important;
+}
+
+.bed-card-prepared .status-prepared {
+  background:#f4d86b;
+  color:#654b00;
+}
+
+.status-prepared { background:#f4d86b;color:#654b00; }
+
+/* TIMER บนการ์ดเตียง */
+.bed-timer {
+  margin-top:17px;
+  padding:14px 12px;
+  background:rgba(0,0,0,.16);
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:13px;
+  text-align:center;
+}
+
+.timer-label {
+  font-size:12px;
+  color:#e4f5e8;
+  margin-bottom:4px;
+}
+
+.timer-value {
+  font-family:Arial,sans-serif;
+  font-size:clamp(27px,3vw,36px);
+  font-weight:800;
+  letter-spacing:2px;
+  color:#fff;
+  line-height:1.3;
+  font-variant-numeric:tabular-nums;
+}
+
+.timer-value.timer-warning { color:#ffe08a; }
+
+.timer-value.timer-expired {
+  color:#ffb0a7;
+  animation:timerPulse 1s infinite;
+}
+
+.timer-service {
+  font-size:11px;
+  color:#e4f5e8;
+  margin-top:5px;
+}
+
+@keyframes timerPulse {
+  50% { opacity:.45; }
+}
+
+/* =========================================
+   NICHA SPA - PREMIUM COLOR REFRESH
+   ========================================= */
+
+.stats .stat-card {
+  position:relative;
+  overflow:hidden;
+  border-radius:18px;
+  border:1px solid transparent;
+  transition:.25s ease;
+}
+
+.stats .stat-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 12px 28px rgba(29,55,42,.13);
+}
+
+.stats .stat-card:nth-child(1) {
+  background:linear-gradient(145deg,#fffdf6,#f4e8c9);
+  border-color:#e4d09b;
+}
+.stats .stat-card:nth-child(1) .stat-icon {
+  background:#ead9ad;
+  color:#8d6925;
+}
+.stats .stat-card:nth-child(1) .stat-value { color:#98732b; }
+
+.stats .stat-card:nth-child(2) {
+  background:linear-gradient(145deg,#f5fff6,#dff1e3);
+  border-color:#b8ddc0;
+}
+.stats .stat-card:nth-child(2) .stat-icon {
+  background:#c6e8ce;
+  color:#34764b;
+}
+.stats .stat-card:nth-child(2) .stat-value { color:#34764b; }
+
+.stats .stat-card:nth-child(3) {
+  background:linear-gradient(145deg,#fffaf0,#ffedc4);
+  border-color:#efd18a;
+}
+.stats .stat-card:nth-child(3) .stat-icon {
+  background:#f6dda0;
+  color:#a36b16;
+}
+.stats .stat-card:nth-child(3) .stat-value { color:#a36b16; }
+
+.stats .stat-card:nth-child(4) {
+  background:linear-gradient(145deg,#238052,#125b39);
+  border-color:#0d5936;
+}
+.stats .stat-card:nth-child(4) .stat-name,
+.stats .stat-card:nth-child(4) .stat-note { color:#e1f5e7; }
+.stats .stat-card:nth-child(4) .stat-value { color:#fff; }
+.stats .stat-card:nth-child(4) .stat-icon {
+  background:#ffffff25;
+  color:#fff;
+}
+
+.stats .stat-card:nth-child(5) {
+  background:linear-gradient(145deg,#faf7ff,#eae1f7);
+  border-color:#d4c4ed;
+}
+.stats .stat-card:nth-child(5) .stat-icon {
+  background:#dcd0ef;
+  color:#7354a1;
+}
+.stats .stat-card:nth-child(5) .stat-value { color:#7354a1; }
+
+.bed-card {
+  position:relative;
+  overflow:hidden;
+  border-radius:19px;
+  padding:20px;
+  min-height:145px;
+  transition:transform .22s,box-shadow .22s;
+}
+
+.bed-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 14px 30px rgba(29,55,42,.15);
+}
+
+.bed-card-free {
+  background:linear-gradient(145deg,#ffffff,#e5f5e9)!important;
+  border:1.5px solid #a9d6b5!important;
+  box-shadow:0 6px 18px rgba(52,118,75,.08);
+}
+.bed-card-free .bed-name { color:#286b40!important; }
+.bed-card-free .bed-area { color:#63846b!important; }
+.bed-card-free .bed-action {
+  color:#34764b!important;
+  border-color:#c7e4ce!important;
+}
+.bed-card-free .status-free {
+  background:#c9ebd1;
+  color:#21663a;
+  font-weight:500;
+}
+
+.bed-card-prepared {
+  background:linear-gradient(145deg,#fffdf5,#ffedbd)!important;
+  border:1.5px solid #e9c66e!important;
+  box-shadow:0 6px 18px rgba(163,107,22,.10);
+}
+.bed-card-prepared .bed-name { color:#805713!important; }
+.bed-card-prepared .bed-area { color:#9a762f!important; }
+.bed-card-prepared .bed-action {
+  color:#966313!important;
+  border-color:#efd99e!important;
+}
+.bed-card-prepared .status-prepared {
+  background:#e8c35d!important;
+  color:#62440b!important;
+  font-weight:600;
+}
+
+.bed-card-busy {
+  background:linear-gradient(145deg,#238052,#105638)!important;
+  color:#fff!important;
+  border:1.5px solid #0b5835!important;
+  box-shadow:0 9px 25px rgba(22,107,67,.25);
+}
+.bed-card-busy .bed-name,
+.bed-card-busy .bed-area,
+.bed-card-busy .bed-action {
+  color:#fff!important;
+  border-color:#ffffff45!important;
+}
+.bed-card-busy .bed-name { font-size:18px;font-weight:600; }
+.bed-card-busy .status-busy {
+  background:#d6f4df!important;
+  color:#125b39!important;
+  font-weight:600;
+}
+
+.bed-card-busy .bed-timer {
+  background:rgba(0,0,0,.20);
+  border:1px solid #ffffff45;
+  padding:16px 12px;
+  box-shadow:inset 0 1px 8px rgba(0,0,0,.12);
+}
+.bed-card-busy .timer-value {
+  font-size:clamp(28px,3vw,38px);
+  font-weight:800;
+  letter-spacing:2px;
+  text-shadow:0 2px 8px #0003;
+}
+.bed-card-busy .timer-value.timer-warning { color:#ffe28b; }
+.bed-card-busy .timer-value.timer-expired { color:#ffaaa0; }
+.bed-card-busy .timer-label,
+.bed-card-busy .timer-service { color:#e2f5e8; }
+
+#pageContent table tbody tr:hover { background:#f5f8f2; }
+#pageContent table tbody td { color:#405347; }
+#pageContent table thead th { background:#eaf1e8; }
+
+.btn-primary {
+  background:linear-gradient(135deg,#173f32,#286348);
+  box-shadow:0 4px 10px rgba(23,63,50,.13);
+}
+.btn-gold { background:linear-gradient(135deg,#b99448,#d5b76f); }
+.btn-light { background:#e9f1e9;color:#245744; }
+
+/* ===== ระบบลบเตียง ===== */
+
+.bed-manage-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.btn-delete-bed {
+  border:1px solid #e9c9c4;
+  background:#fff3f1;
+  color:#ad4b40;
+  border-radius:9px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:500;
+}
+
+.btn-delete-bed:hover {
+  background:#f9e2de;
+  border-color:#d99b92;
+}
+
+.btn-delete-bed:disabled {
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.bed-manage-table {
+  width:100%;
+  min-width:520px;
+  border-collapse:collapse;
+}
+
+.bed-manage-table th,
+.bed-manage-table td {
+  padding:13px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  font-size:13px;
+}
+
+.bed-manage-table th {
+  background:#eaf1e8;
+  color:var(--green);
+}
+
+.bed-manage-status {
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:11px;
+}
+
+.bed-manage-status.free {
+  color:#287044;
+  background:#e2f3e6;
+}
+
+.bed-manage-status.busy {
+  color:#a66a20;
+  background:#fff0dc;
+}
+
+.bed-manage-status.prepared {
+  color:#765900;
+  background:#fff0c2;
+}
+
+.delete-bed-modal {
+  max-width:430px;
+  text-align:center;
+  border:1px solid #ead8d2;
+}
+
+.delete-bed-icon {
+  width:66px;
+  height:66px;
+  margin:0 auto 15px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#fff0ed;
+  color:#b85d51;
+  font-size:30px;
+}
+
+.delete-bed-name {
+  color:var(--green);
+  font-size:21px;
+  font-weight:600;
+  margin:12px 0;
+}
+
+.delete-bed-warning {
+  background:#fff7f4;
+  color:#a34f45;
+  border-radius:12px;
+  padding:12px;
+  font-size:12px;
+  line-height:1.7;
+  margin:15px 0;
+}
+
+.delete-bed-actions {
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+}
+
+.delete-bed-actions button { flex:1; }
+
+/* ตัวเลือกพนักงานนวดแบบ Popup */
+.staff-picker-trigger {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:11px;
+  background:#fff; color:var(--green); text-align:left; min-height:46px;
+}
+.staff-picker-trigger:hover { border-color:var(--gold); background:#fffdf7; }
+.staff-picker-trigger.selected { border-color:#b8d8bd; background:#f1f8f1; font-weight:500; }
+.employee-picker-modal { max-width:560px; }
+
+.member-picker-modal { max-width:620px; }
+.member-search { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:11px;font:inherit;margin:0 0 12px; }
+.member-picker-list { display:grid;gap:9px;max-height:55vh;overflow:auto; }
+.member-picker-item { width:100%;text-align:left;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer; }
+.member-picker-item:hover { border-color:var(--gold);background:#fffdf7; }
+.member-picker-item strong { color:var(--green);font-size:14px; }
+.member-picker-meta { color:var(--muted);font-size:12px;line-height:1.7;margin-top:4px; }
+.member-picker-status { display:inline-block;padding:2px 8px;border-radius:20px;background:#edf4ed;color:#287044;font-size:11px;margin-left:6px; }
+.member-picker-empty { padding:20px;text-align:center;color:var(--muted);background:#f7f7f2;border-radius:12px; }
+.member-selected-note { color:var(--muted);font-size:11px;margin-top:5px; }
+
+.employee-picker-hint { margin:-8px 0 14px; color:var(--muted); font-size:12px; }
+.employee-picker-list {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+  max-height:58vh;
+  overflow:auto;
+  padding:2px;
+}
+.employee-picker-item {
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  gap:7px; min-width:0; min-height:82px; padding:10px 7px;
+  border:1px solid #e5e8df; border-radius:12px;
+  background:#fff; color:#374151; text-align:center;
+  box-shadow:0 2px 7px rgba(29,55,42,.04);
+}
+.employee-picker-item.available { cursor:pointer; }
+.employee-picker-item.available:hover { border-color:var(--gold); background:#fffdf6; }
+.employee-picker-item.unavailable {
+  background:#16a34a; color:#fff; border-color:#15803d;
+  cursor:not-allowed; opacity:1;
+}
+.employee-picker-item:disabled { opacity:1; }
+.employee-picker-name { font-weight:500; line-height:1.35; overflow-wrap:anywhere; }
+.employee-picker-status {
+  flex-shrink:0; padding:3px 9px; border-radius:20px;
+  font-size:11px; background:#f2f4ef; color:#287044;
+}
+.employee-picker-status.available { color:#287044; background:#e2f3e6; }
+.employee-picker-status.unavailable { color:#166534; background:#fff; }
+.employee-picker-item.unavailable .employee-picker-name { color:#fff; }
+.employee-picker-empty {
+  grid-column:1/-1; padding:20px; text-align:center;
+  color:var(--muted); background:#f7f7f2; border-radius:12px;
+}
+.stat-card-clickable {
+  width:100%; font:inherit; text-align:left; cursor:pointer;
+}
+.stat-card-clickable:focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
+
+@media(max-width:1050px) {
+  .stats { grid-template-columns:repeat(3,1fr); }
+  .bed-grid { grid-template-columns:repeat(2,1fr); }
+}
+
+@media(max-width:700px) {
+  .sidebar {
+    width:100%;
+    height:auto;
+    top:auto;
+    bottom:0;
+    padding:7px 5px;
+    flex-direction:row;
+    justify-content:space-around;
+    border-radius:16px 16px 0 0;
+  }
+
+  .side-brand,.side-label,.side-bottom { display:none; }
+  .sidebar nav { display:flex;width:100%;justify-content:space-around; }
+
+  .nav-btn {
+    flex:1;
+    flex-direction:column;
+    justify-content:center;
+    gap:2px;
+    padding:7px 2px;
+    font-size:10px;
+    margin:0;
+  }
+
+  .nav-icon { font-size:18px; }
+
+  .main {
+    margin-left:0;
+    padding:19px 14px 100px;
+  }
+
+  .topbar { align-items:flex-start; }
+  .top-title h1 { font-size:21px; }
+  .date-label { display:none; }
+  .welcome { padding:22px; }
+  .stats { grid-template-columns:repeat(2,1fr);gap:9px; }
+  .stat-card { padding:13px; }
+  .stat-value { font-size:20px; }
+  .bed-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+  .bed-card { padding:13px; }
+  .bed-name { font-size:14px; }
+  .form-grid { grid-template-columns:1fr; }
+  .report-grid { grid-template-columns:1fr; }
+  .timer-value { font-size:clamp(23px,6vw,32px);letter-spacing:1px; }
+}
+
+@media(max-width:520px) {
+  .checkout-modal { padding:17px; }
+  .checkout-actions { flex-direction:column; }
+  .checkout-total strong { font-size:28px; }
+  .delete-bed-actions { flex-direction:column; }
+}
+
+@media(max-width:380px) {
+  .bed-grid { grid-template-columns:1fr; }
+}
+
+/* NICHA SPA - STAFF SERVICE PAYOUT EDITOR */
+.payout-help{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 14px}
+.payout-list{display:grid;gap:10px}
+.payout-row{display:grid;grid-template-columns:minmax(0,1.5fr) auto minmax(110px,.7fr);gap:10px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}
+.payout-service-name{font-weight:500;color:var(--green);line-height:1.4}
+.payout-service-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.payout-mode{display:flex;gap:3px;padding:3px;border-radius:9px;background:#f2f3ed}
+.payout-mode button{border:0;border-radius:7px;padding:7px 9px;background:transparent;color:#69736b;font-size:11px;white-space:nowrap}
+.payout-mode button.active{background:var(--green);color:#fff;box-shadow:0 2px 5px #173f3220}
+.payout-value-wrap{display:flex;align-items:center;gap:6px;min-width:0}
+.payout-value-wrap input{width:100%;min-width:0;padding:9px 8px;border:1px solid var(--border);border-radius:8px;font:inherit}
+.payout-value-unit{font-size:12px;color:var(--muted);white-space:nowrap}
+.staff-edit-btn{padding:6px 10px;font-size:11px}
+.staff-form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:620px){.payout-row{grid-template-columns:1fr auto;gap:8px}.payout-service{grid-column:1/-1}.payout-value-wrap{grid-column:1/-1}.payout-mode{justify-self:start}}
+
+
+/* SERVICE ON/OFF SLIDING BAR */
+.service-switch{position:relative;display:inline-flex;width:68px;height:34px;vertical-align:middle;cursor:pointer;flex:none}
+.service-switch input{opacity:0;width:0;height:0;position:absolute}
+.service-switch-track{position:absolute;inset:0;border-radius:99px;background:#cbd5d1;cursor:pointer;transition:background .2s ease;box-shadow:inset 0 1px 2px #00000012}
+.service-switch-track:before{content:"";position:absolute;width:26px;height:26px;left:4px;top:4px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003;transition:transform .2s ease}
+.service-switch-track:after{content:"ปิด";position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;font-weight:700;color:#52615a;pointer-events:none}
+.service-switch input:checked + .service-switch-track{background:#23845d}
+.service-switch input:checked + .service-switch-track:before{transform:translateX(34px)}
+.service-switch input:checked + .service-switch-track:after{content:"เปิด";right:auto;left:8px;color:#fff}
+.service-switch input:focus-visible + .service-switch-track{outline:3px solid #23845d55;outline-offset:2px}
+.service-switch input:disabled + .service-switch-track{opacity:.55;cursor:wait}
+.service-status{font-size:12px;font-weight:600;margin-left:8px}
+.service-status.on{color:#23845d}.service-status.off{color:#9a6a36}
 </style>
 </head>
-<body>
-<div id="loginScreen" class="login-screen">
-  <div class="login-card">
-    <div class="brand-mark">N</div>
-    <h2>NICHA SPA BOOKING</h2>
-    <p>ระบบปฏิทินและจัดเตรียมรายการจอง</p>
-    <input id="pin" type="password" inputmode="numeric" placeholder="รหัสผู้ดูแล" autocomplete="current-password">
-    <div id="loginError" class="error"></div>
-    <button id="loginBtn" class="btn btn-green" onclick="login()">เข้าสู่ระบบ</button>
-  </div>
-</div>
 
-<div id="app" class="hidden">
-  <header class="topbar">
-    <div class="brand"><div class="brand-mark">N</div><div><div class="brand-title">NICHA SPA</div><div class="brand-sub">BOOKING CALENDAR</div></div></div>
-    <div class="top-actions"><button class="top-btn" onclick="loadAll()">↻ รีเฟรช</button><button class="top-btn" onclick="logout()">ออกจากระบบ</button></div>
-  </header>
-  <main class="wrap">
-    <div class="toolbar">
-      <div><h1>ปฏิทินรายการจอง</h1><p>รายการที่ลูกค้ายืนยันแล้ว รอร้านตรวจสอบและจัดเตรียม</p></div>
-      <div class="controls">
-        <button class="btn btn-light" onclick="goToday()">วันนี้</button>
-        <div class="view-switch"><button id="viewMonth" class="active" onclick="setView('month')">เดือน</button><button id="viewWeek" onclick="setView('week')">สัปดาห์</button><button id="viewList" onclick="setView('list')">รายการ</button></div>
-      </div>
+<body>
+
+<section id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="logo-mark">N</div>
+    <div class="login-title">NICHA SPA</div>
+    <div class="login-sub">MASSAGE & REVENUE MANAGEMENT</div>
+    <div class="field">
+      <input id="pin" type="password" placeholder="กรอกรหัสผู้ดูแล">
     </div>
-    <div class="stats">
-      <div class="stat"><small>รอยืนยัน/จัดเตรียม</small><strong id="pendingCount">0</strong></div>
-      <div class="stat"><small>จัดเตรียมเข้าหน้าร้านแล้ว</small><strong id="preparedCount">0</strong></div>
-      <div class="stat"><small>รายการทั้งหมด</small><strong id="totalCount">0</strong></div>
+    <button class="btn btn-primary btn-block" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
+    <p id="loginError" class="login-error"></p>
+    <div style="font-size:11px;color:#9b9b8d;margin-top:15px">ณิชา นวดเพื่อสุขภาพ</div>
+  </div>
+</section>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <strong>NICHA</strong>
+      <span>SPA MANAGEMENT</span>
     </div>
-    <section class="calendar-card">
-      <div class="cal-head">
-        <div class="cal-nav"><button class="icon-btn" onclick="movePeriod(-1)">‹</button><div id="periodLabel" class="month-label">-</div><button class="icon-btn" onclick="movePeriod(1)">›</button></div>
-        <div class="controls"><button class="btn btn-light" onclick="loadAll()">โหลดข้อมูลล่าสุด</button></div>
+
+    <div class="side-label">MAIN MENU</div>
+
+    <nav>
+      <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-icon">▦</span>หน้าร้าน</button>
+      <button class="nav-btn" data-page="beds" onclick="showPage('beds')"><span class="nav-icon">▤</span>จัดการเตียง</button>
+      <button class="nav-btn" data-page="staff" onclick="showPage('staff')"><span class="nav-icon">♙</span>พนักงาน</button>
+      <button class="nav-btn" data-page="services" onclick="showPage('services')"><span class="nav-icon">✧</span>เมนูบริการ</button>
+      <button class="nav-btn" data-page="report" onclick="showPage('report')"><span class="nav-icon">▥</span>รายงาน</button>
+    </nav>
+
+    <div class="side-bottom">NICHA SPA · PREMIUM CARE</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-title">
+        <h1 id="pageTitle">หน้าร้าน</h1>
+        <p>ระบบบริหารจัดการ ณิชา นวดเพื่อสุขภาพ</p>
       </div>
-      <div id="calendarContent"></div>
-      <div class="legend"><span><i class="dot"></i>รอจัดเตรียม</span><span><i class="dot grey"></i>ส่งเข้าหน้าร้านแล้ว</span></div>
-    </section>
+      <div class="top-right">
+        <span class="date-label" id="today"></span>
+        <span class="admin-chip">✦ ผู้ดูแลระบบ</span>
+        <button class="btn btn-light" onclick="logout()">ออก</button>
+      </div>
+    </header>
+
+    <section id="pageContent"></section>
   </main>
 </div>
 
-<div id="detailOverlay" class="overlay" onclick="if(event.target===this)closeDetail()">
+<div id="bookingModal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="modal-head"><h2>รายละเอียดการจอง</h2><button class="close" onclick="closeDetail()">×</button></div>
-    <div class="modal-body">
-      <div id="reservationDetails" class="detail-grid"></div>
-      <div class="section-title">จัดเตรียมเข้าหน้าร้าน</div>
-      <div class="field"><label>เลือกบริการในระบบหน้าร้าน (ตรวจสอบให้ตรงกับคอร์สที่จอง)</label><select id="serviceSelect"></select></div>
-      <div class="field"><label>เลือกเตียงที่ว่าง</label><select id="bedSelect"></select></div>
-      <div class="field"><label>เลือกหมอนวดที่ว่าง</label><select id="employeeSelect"></select></div>
-      <div id="modalMessage" class="error"></div>
-      <div style="font-size:12px;color:#78847d;line-height:1.6">เมื่อกดยืนยัน ระบบจะสร้างรายการสถานะ “เตรียมไว้” ในระบบหน้าร้าน และป้องกันการนำรหัสจองเดิมเข้าซ้ำ</div>
+    <div class="modal-head">
+      <h2 id="modalTitle">รับลูกค้าเข้าร้าน</h2>
+      <button class="close" onclick="closeModal()">×</button>
     </div>
-    <div class="modal-actions"><button class="btn btn-light" onclick="closeDetail()">ปิด</button><button id="prepareBtn" class="btn btn-green" onclick="prepareSelected()">ยืนยันและส่งเข้าหน้าร้าน</button></div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>เตียงที่เลือก</label>
+        <input id="bookingBedName" disabled>
+        <input id="bookingBedId" type="hidden">
+      </div>
+
+      <div class="field">
+        <label>ประเภทลูกค้า</label>
+        <select id="customerType">
+          <option value="ขาจร">ลูกค้าขาจร</option>
+          <option value="ลูกค้าประจำ">ลูกค้าประจำ</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>ชื่อลูกค้า</label>
+        <input id="customerName" placeholder="ชื่อลูกค้า">
+        <input id="memberLineUserId" type="hidden" value="">
+        <div id="memberSelectedNote" class="member-selected-note"></div>
+      </div>
+
+      <div class="field full">
+        <label>พนักงานนวด</label>
+        <input id="bookingEmployee" type="hidden" value="">
+        <button type="button" class="staff-picker-trigger" id="bookingEmployeeButton" onclick="openEmployeePicker()">
+          <span id="bookingEmployeeLabel">กดเพื่อเลือกพนักงานนวด</span><span aria-hidden="true">⌄</span>
+        </button>
+      </div>
+
+      <div class="field full">
+        <label>เลือกบริการ</label>
+        <select id="bookingService" onchange="updateBookingPrice()"></select>
+      </div>
+
+      <div class="field">
+        <label>ราคา (บาท)</label>
+        <input id="bookingPrice" type="number" min="0">
+      </div>
+
+      <div class="field">
+        <label>ส่วนลด (บาท)</label>
+        <input id="bookingDiscount" type="number" min="0" value="0">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-gold" onclick="prepareBooking()">เตรียมไว้</button>
+      <button class="btn btn-primary" onclick="startBooking()">เริ่มนวดทันที</button>
+      <button class="btn btn-light" onclick="closeModal()">ปิด</button>
+    </div>
   </div>
 </div>
+
+<div id="memberPickerModal" class="modal-backdrop hidden" style="z-index:80">
+  <div class="modal member-picker-modal">
+    <div class="modal-head">
+      <h2>เลือกลูกค้าประจำ</h2>
+      <button class="close" onclick="closeMemberPicker()">×</button>
+    </div>
+    <p class="employee-picker-hint">ค้นหาจากชื่อสมาชิกหรือเบอร์โทรศัพท์ · ข้อมูลจาก Nicha Cam Database</p>
+    <input id="memberSearch" class="member-search" placeholder="พิมพ์ชื่อหรือเบอร์โทรเพื่อค้นหา" oninput="renderMemberPicker()">
+    <div id="memberPickerList" class="member-picker-list"><div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div></div>
+    <div class="form-actions"><button class="btn btn-light" onclick="closeMemberPicker()">ปิด</button></div>
+  </div>
+</div>
+
+<div id="employeePickerModal" class="modal-backdrop hidden" style="z-index:70">
+  <div class="modal employee-picker-modal">
+    <div class="modal-head">
+      <h2>เลือกพนักงานนวด</h2>
+      <button class="close" onclick="closeEmployeePicker()">×</button>
+    </div>
+    <p class="employee-picker-hint">เลือกได้เฉพาะพนักงานที่ยังไม่มีงานนวดอยู่</p>
+    <div id="employeePickerList" class="employee-picker-list"></div>
+    <div class="form-actions">
+      <button class="btn btn-light" onclick="closeEmployeePicker()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div id="dashboardStaffPickerModal" class="modal-backdrop hidden" style="z-index:70">
+  <div class="modal employee-picker-modal">
+    <div class="modal-head">
+      <h2>สถานะพนักงานทั้งหมด</h2>
+      <button class="close" onclick="closeDashboardStaffPicker()">×</button>
+    </div>
+    <p class="employee-picker-hint">สีขาว = ว่าง · สีเขียว = ไม่ว่าง (กำลังนวด)</p>
+    <div id="dashboardStaffPickerList" class="employee-picker-list"></div>
+    <div class="form-actions">
+      <button class="btn btn-light" onclick="closeDashboardStaffPicker()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div id="preparedModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>รายการเตรียมรับลูกค้า</h2>
+      <button class="close" onclick="closePreparedModal()">×</button>
+    </div>
+    <div id="preparedDetails" class="panel" style="margin:12px 0"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="startPreparedBooking()">เริ่มนวด</button>
+      <button class="btn btn-danger" onclick="cancelPreparedBooking()">ยกเลิกรายการ</button>
+      <button class="btn btn-light" onclick="closePreparedModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div id="checkoutModal" class="modal-backdrop hidden">
+  <div class="modal checkout-modal">
+    <div class="modal-head">
+      <div>
+        <h2 style="margin:0;color:var(--green)">สรุปยอดชำระเงิน</h2>
+        <small id="checkoutSubtitle" style="color:var(--muted)"></small>
+      </div>
+      <button class="close" onclick="closeCheckout()">×</button>
+    </div>
+
+    <div id="checkoutDetails"></div>
+
+    <div class="field">
+      <label>เลือกวิธีชำระเงิน</label>
+    </div>
+
+    <div class="payment-options">
+      <label class="payment-option selected" id="cashOption">
+        <input type="radio" name="paymentMethod" value="เงินสด" checked onchange="selectPaymentMethod()"> 💵 เงินสด
+      </label>
+      <label class="payment-option" id="transferOption">
+        <input type="radio" name="paymentMethod" value="โอนเงิน" onchange="selectPaymentMethod()"> 📱 โอนเงิน
+      </label>
+    </div>
+
+    <div id="cashFields" class="payment-fields">
+      <div class="field">
+        <label for="cashReceived">จำนวนเงินสดที่รับจากลูกค้า (บาท)</label>
+        <input id="cashReceived" type="number" min="0" step="0.01" placeholder="กรอกจำนวนเงินที่รับ" oninput="updateCashChange()">
+      </div>
+      <div class="change-box">
+        <span>เงินทอน</span>
+        <strong id="cashChange">0.00 ฿</strong>
+      </div>
+      <small id="cashHint" style="color:var(--muted)">กรอกจำนวนเงินที่รับ ระบบจะคำนวณเงินทอนให้อัตโนมัติ</small>
+    </div>
+
+    <div class="checkout-actions">
+      <button class="btn btn-light" onclick="closeCheckout()">กลับ</button>
+      <button id="confirmCheckoutBtn" class="btn btn-primary" onclick="confirmCheckout()">ยืนยันรับชำระและจบงาน</button>
+    </div>
+  </div>
+</div>
+
+<!-- หน้าต่างยืนยันการลบเตียง -->
+<div id="deleteBedModal" class="modal-backdrop hidden">
+  <div class="modal delete-bed-modal">
+    <div class="delete-bed-icon">⌫</div>
+
+    <h2 style="margin:0;color:var(--green)">ยืนยันการลบเตียง</h2>
+
+    <div class="delete-bed-name" id="deleteBedName">-</div>
+
+    <div class="delete-bed-warning">
+      เตียงนี้จะถูกนำออกจากรายการจัดการเตียง
+      <br>
+      ประวัติการจองและรายได้เดิมจะยังคงอยู่
+    </div>
+
+    <div class="delete-bed-actions">
+      <button class="btn btn-light" onclick="closeDeleteBedModal()">ยกเลิก</button>
+      <button class="btn btn-danger" id="confirmDeleteBedBtn" onclick="confirmDeleteBed()">ยืนยันลบเตียง</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbyYu1ndQ7ruRw980iyVuR5mOYTXM5RvisY_Yy9e3aZlQ54Urn7kcRq9h1_mICsweJuXkg/exec';
-let appData={reservations:[],beds:[],employees:[],services:[],activeBookings:[]};
-let selected=null, view='month', cursor=new Date(); cursor.setDate(1);
+
+let state={
+  beds:[],
+  employees:[],
+  services:[],
+  servicePayouts:{},
+  activeBookings:[],
+  members:[]
+};
+
+let selectedPreparedBooking=null;
+let currentPage='dashboard';
 let toastTimer=null;
+let checkoutBooking=null;
+let checkoutBed=null;
+let pendingDeleteBed=null;
+
+document.addEventListener('DOMContentLoaded',setupCustomerTypePicker);
 
 async function api(action,data={}) {
   const token=sessionStorage.getItem('nicha_token')||'';
-  const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,token,...data})});
-  if(!res.ok) throw new Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+res.status);
-  return await res.json();
+
+  const response=await fetch(API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action,token,...data})
+  });
+
+  if(!response.ok) throw new Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+response.status);
+
+  return await response.json();
 }
-async function login(){
-  const pin=document.getElementById('pin').value.trim(),btn=document.getElementById('loginBtn');
-  document.getElementById('loginError').textContent='';
-  if(!pin){document.getElementById('loginError').textContent='กรุณากรอกรหัสผู้ดูแล';return;}
-  btn.disabled=true;btn.textContent='กำลังเข้าสู่ระบบ...';
-  try{const r=await api('login',{pin});if(!r.ok)throw new Error(r.error||'เข้าสู่ระบบไม่สำเร็จ');sessionStorage.setItem('nicha_token',r.token);await enterApp();}
-  catch(e){document.getElementById('loginError').textContent=e.message;}
-  finally{btn.disabled=false;btn.textContent='เข้าสู่ระบบ';}
+
+async function login() {
+  const pin=document.getElementById('pin').value.trim();
+  const error=document.getElementById('loginError');
+  const button=document.getElementById('loginBtn');
+
+  if(!pin) {
+    error.textContent='กรุณากรอกรหัสผู้ดูแล';
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent='กำลังเข้าสู่ระบบ...';
+  error.textContent='';
+
+  try {
+    const result=await api('login',{pin});
+
+    if(!result.ok) throw new Error(result.error||'เข้าสู่ระบบไม่สำเร็จ');
+
+    sessionStorage.setItem('nicha_token',result.token);
+
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    await refresh();
+    showPage('dashboard');
+
+  } catch(err) {
+    error.textContent=err.message;
+  } finally {
+    button.disabled=false;
+    button.textContent='เข้าสู่ระบบ';
+  }
 }
-async function enterApp(){
-  document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');await loadAll();
+
+async function logout() {
+  try {
+    await api('logout');
+  } catch(err) {
+    console.warn(err);
+  }
+
+  sessionStorage.removeItem('nicha_token');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('pin').value='';
 }
-async function loadAll(){
+
+// รวมคำขอ init ที่เกิดพร้อมกันให้เหลือ request เดียว และเก็บเวลาอัปเดตล่าสุด
+let initRefreshPromise=null;
+let lastRefreshAt=0;
+const REFRESH_FRESH_MS=8000;
+
+async function refresh(force=false) {
+  const now=Date.now();
+  if(!force && initRefreshPromise) return initRefreshPromise;
+  if(!force && lastRefreshAt && now-lastRefreshAt<350) return state;
+
+  if(initRefreshPromise) return initRefreshPromise;
+
+  initRefreshPromise=(async()=>{
+    const result=await api('init');
+    if(!result.ok) throw new Error(result.error||'โหลดข้อมูลไม่สำเร็จ');
+
+    state={
+      beds:result.beds||[],
+      employees:result.employees||[],
+      services:result.services||[],
+      servicePayouts:result.servicePayouts||{},
+      activeBookings:result.activeBookings||[],
+      members:state.members||[]
+    };
+    lastRefreshAt=Date.now();
+    return state;
+  })();
+
+  try { return await initRefreshPromise; }
+  finally { initRefreshPromise=null; }
+}
+
+// รีเฟรชข้อมูลหลังบันทึกแบบเบื้องหลัง เพื่อไม่ให้หน้าจอค้างรอโหลด
+let backgroundRefreshPromise=null;
+let refreshRequested=false;
+function refreshAfterAction() {
+  // ถ้ามีการบันทึกซ้ำระหว่างกำลังรีเฟรช ให้ทำรอบใหม่อีกครั้ง
+  refreshRequested=true;
+  if(backgroundRefreshPromise) return backgroundRefreshPromise;
+
+  backgroundRefreshPromise=(async()=>{
+    do {
+      refreshRequested=false;
+      try {
+        await refresh(true);
+        // อัปเดตสถานะใน Popup พนักงาน หากเปิดค้างอยู่
+        if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) {
+          renderDashboardStaffPicker();
+        }
+        if(!document.getElementById('employeePickerModal').classList.contains('hidden')) {
+          renderEmployeePickerList('employeePickerList',true);
+        }
+        // วาดเฉพาะหน้าที่ผู้ใช้กำลังเปิดอยู่ ไม่ดึงผู้ใช้กลับหน้าเดิม
+        showPage(currentPage);
+      } catch(err) {
+        console.warn('Background refresh:',err);
+        notify('บันทึกแล้ว แต่รีเฟรชข้อมูลไม่สำเร็จ กรุณาเปลี่ยนหน้าเพื่อโหลดใหม่','error');
+      }
+    } while(refreshRequested);
+  })().finally(()=>{
+    backgroundRefreshPromise=null;
+  });
+
+  return backgroundRefreshPromise;
+}
+
+function showPage(page) {
+  currentPage=page;
+
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.page===page);
+  });
+
+  const titles={
+    dashboard:'หน้าร้าน',
+    beds:'จัดการเตียง',
+    staff:'จัดการพนักงาน',
+    services:'เมนูบริการ',
+    report:'รายงาน'
+  };
+
+  document.getElementById('pageTitle').textContent=titles[page];
+
+  if(page==='dashboard') renderDashboard();
+  if(page==='beds') renderBeds();
+  if(page==='staff') renderStaff();
+  if(page==='services') renderServices();
+  if(page==='report') renderReport();
+}
+
+function money(value) {
+  return Number(value||0).toLocaleString('th-TH',{maximumFractionDigits:2})+' ฿';
+}
+
+function active(value) {
+  return value===true ||
+    String(value).toLowerCase()==='true' ||
+    String(value)==='1';
+}
+
+function escapeHTML(value) {
+  return String(value??'').replace(/[&<>"']/g,char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[char]));
+}
+
+function notify(message,type='success') {
+  const toast=document.getElementById('toast');
+
+  toast.textContent=message||'ดำเนินการเรียบร้อย';
+  toast.classList.remove('hidden','toast-error');
+
+  if(type==='error') toast.classList.add('toast-error');
+
+  clearTimeout(toastTimer);
+
+  toastTimer=setTimeout(()=>{
+    toast.classList.add('hidden');
+    toast.classList.remove('toast-error');
+  },3000);
+}
+
+function todayText() {
+  document.getElementById('today').textContent=
+    new Date().toLocaleDateString('th-TH',{
+      weekday:'short',
+      year:'numeric',
+      month:'long',
+      day:'numeric'
+    });
+}
+
+/* TIMER FUNCTIONS */
+
+function parseStartedAt(value) {
+  if(!value) return NaN;
+
+  if(value instanceof Date) return value.getTime();
+
+  if(typeof value==='number') {
+    return value < 1000000000000 ? value*1000 : value;
+  }
+
+  const parsed=new Date(value).getTime();
+
+  return parsed;
+}
+
+function getRemainingTime(booking) {
+  if(!booking || !booking.startedAt) return null;
+
+  const started=parseStartedAt(booking.startedAt);
+  const minutes=Number(booking.minutes||0);
+
+  if(!Number.isFinite(started) || !minutes) return null;
+
+  const endTime=started+minutes*60*1000;
+
+  return Math.ceil((endTime-Date.now())/1000);
+}
+
+function formatRemaining(seconds) {
+  if(seconds<=0) return '00:00:00';
+
+  const h=Math.floor(seconds/3600);
+  const m=Math.floor((seconds%3600)/60);
+  const s=seconds%60;
+
+  return [h,m,s]
+    .map(v=>String(v).padStart(2,'0'))
+    .join(':');
+}
+
+/* DASHBOARD */
+
+function renderDashboard() {
+  const beds=state.beds.filter(x=>active(x.active));
+
+  const busy=beds.filter(x=>x.status==='กำลังนวด').length;
+  const prepared=beds.filter(x=>x.status==='เตรียมไว้').length;
+  const free=beds.filter(x=>x.status==='ว่าง').length;
+
+  const staff=state.employees.filter(x=>active(x.active)).length;
+
+  document.getElementById('pageContent').innerHTML=`
+    <div class="welcome">
+      <h2>Welcome to NICHA SPA</h2>
+      <p>บริหารจัดการร้านนวดของคุณอย่างสวยงามและเป็นระบบ</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-name">เตียงทั้งหมด</span><span class="stat-icon">▤</span></div>
+        <div class="stat-value">${beds.length}</div>
+        <div class="stat-note">เตียงและห้องบริการ</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-name">เตียงว่าง</span><span class="stat-icon">✧</span></div>
+        <div class="stat-value">${free}</div>
+        <div class="stat-note">พร้อมรับลูกค้า</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-name">เตรียมไว้</span><span class="stat-icon">🟡</span></div>
+        <div class="stat-value">${prepared}</div>
+        <div class="stat-note">รอเริ่มนวด</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-name">กำลังให้บริการ</span><span class="stat-icon">♨</span></div>
+        <div class="stat-value">${busy}</div>
+        <div class="stat-note">เตียงที่กำลังนวด</div>
+      </div>
+
+      <button type="button" class="stat-card stat-card-clickable" onclick="openDashboardStaffPicker()" aria-label="ดูสถานะพนักงานทั้งหมด">
+        <div class="stat-top"><span class="stat-name">พนักงาน</span><span class="stat-icon">♙</span></div>
+        <div class="stat-value">${staff}</div>
+        <div class="stat-note">พนักงานที่เปิดใช้งาน · กดเพื่อดูสถานะ</div>
+      </button>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>สถานะเตียงและห้องบริการ</h2>
+        <p>เลือกเตียงเพื่อเริ่มรับลูกค้า</p>
+      </div>
+      <button class="btn btn-light" onclick="showPage('beds')">จัดการเตียง</button>
+    </div>
+
+    ${bedCards(beds)}
+  `;
+
+  updateBedTimers();
+}
+
+/* BED CARDS */
+
+function bedCards(beds) {
+  if(!beds.length) {
+    return '<div class="panel empty">ยังไม่มีข้อมูลเตียง</div>';
+  }
+
+  // สร้างดัชนีรายการจองครั้งเดียว แทนการค้นหารายการจองใหม่ทุกเตียง
+  const bookingByBed=new Map();
+  for(const booking of state.activeBookings||[]) {
+    if(booking.status==='กำลังนวด') bookingByBed.set(String(booking.bedId),booking);
+  }
+
+  return `<div class="bed-grid">${beds.map(bed=>{
+    const prepared=bed.status==='เตรียมไว้';
+    const busy=bed.status==='กำลังนวด';
+
+    const booking=bookingByBed.get(String(bed.id));
+
+    const remaining=busy ? getRemainingTime(booking) : null;
+
+    const cardClass=prepared
+      ? 'bed-card-prepared'
+      : busy
+        ? 'bed-card-busy'
+        : 'bed-card-free';
+
+    const statusClass=prepared
+      ? 'status-prepared'
+      : busy
+        ? 'status-busy'
+        : 'status-free';
+
+    return `
+      <div class="bed-card ${cardClass}" onclick="clickBed('${escapeHTML(bed.id)}')">
+        <div class="bed-top">
+          <div>
+            <div class="bed-name">${escapeHTML(bed.name)}</div>
+            <div class="bed-area">${escapeHTML(bed.area)}</div>
+          </div>
+
+          <span class="status ${statusClass}">
+            ${escapeHTML(bed.status||'ว่าง')}
+          </span>
+        </div>
+
+        ${busy ? `
+          <div class="bed-timer">
+            <div class="timer-label">เวลาที่เหลือ</div>
+            <div class="timer-value" data-bed-timer="${escapeHTML(bed.id)}">
+              ${remaining===null ? '--:--:--' : formatRemaining(remaining)}
+            </div>
+            <div class="timer-service">
+              ${escapeHTML(booking?.serviceName||'กำลังให้บริการ')}
+              · ${Number(booking?.minutes||0)} นาที
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="bed-action">
+          ${prepared
+            ? 'เปิดรายการเพื่อเริ่มนวดหรือยกเลิก'
+            : busy
+              ? 'แตะเพื่อคิดเงินและจบงาน'
+              : '+ แตะเพื่อรับลูกค้า'}
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+}
+
+/* UPDATE TIMER EVERY SECOND */
+
+function updateBedTimers() {
+  // ไม่ทำงานเบื้องหลังเมื่อไม่ได้อยู่หน้า Dashboard
+  if(currentPage!=='dashboard' || document.hidden) return;
+
+  const elements=document.querySelectorAll('[data-bed-timer]');
+  if(!elements.length) return;
+
+  // O(จำนวนรายการจอง + จำนวนเตียง) แทนการ find ซ้ำในทุกเตียงทุกวินาที
+  const bookingByBed=new Map();
+  for(const booking of state.activeBookings||[]) {
+    if(booking.status==='กำลังนวด') bookingByBed.set(String(booking.bedId),booking);
+  }
+
+  elements.forEach(element=>{
+    const booking=bookingByBed.get(String(element.dataset.bedTimer));
+    if(!booking) return;
+
+    const remaining=getRemainingTime(booking);
+    const value=remaining===null ? '--:--:--' : formatRemaining(remaining);
+
+    // เขียน DOM เฉพาะเมื่อค่าที่แสดงเปลี่ยนจริง
+    if(element.textContent!==value) element.textContent=value;
+
+    const warning=remaining>0 && remaining<=600;
+    const expired=remaining!==null && remaining<=0;
+    if(element.classList.contains('timer-warning')!==warning) {
+      element.classList.toggle('timer-warning',warning);
+    }
+    if(element.classList.contains('timer-expired')!==expired) {
+      element.classList.toggle('timer-expired',expired);
+    }
+
+    const label=element.parentElement.querySelector('.timer-label');
+    const labelText=expired ? 'หมดเวลาแล้ว' : 'เวลาที่เหลือ';
+    if(label && label.textContent!==labelText) label.textContent=labelText;
+  });
+}
+
+/* BED MANAGEMENT */
+
+function renderBeds() {
+  const beds=state.beds.filter(x=>active(x.active));
+
+  const bedRows=beds.map(bed=>{
+    const isFree=bed.status==='ว่าง';
+    const statusClass=bed.status==='กำลังนวด'
+      ? 'busy'
+      : bed.status==='เตรียมไว้'
+        ? 'prepared'
+        : 'free';
+
+    return `
+      <tr>
+        <td><b>${escapeHTML(bed.name)}</b></td>
+        <td>${escapeHTML(bed.area||'-')}</td>
+        <td>
+          <span class="bed-manage-status ${statusClass}">
+            ${escapeHTML(bed.status||'ว่าง')}
+          </span>
+        </td>
+        <td>
+          <div class="bed-manage-actions">
+            <button
+              class="btn-delete-bed"
+              ${isFree?'':'disabled'}
+              onclick="openDeleteBedModal('${escapeHTML(bed.id)}')"
+              title="${isFree?'ลบเตียงนี้':'ลบได้เฉพาะเตียงว่าง'}"
+            >
+              ลบเตียง
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('pageContent').innerHTML=`
+    <div class="section-head">
+      <div>
+        <h2>เตียงและห้องบริการ</h2>
+        <p>เลือกเตียงเพื่อรับลูกค้า หรือจัดการเตียงเพิ่มเติม</p>
+      </div>
+    </div>
+
+    ${bedCards(beds)}
+
+    <div class="section-head">
+      <div>
+        <h2>จัดการรายการเตียง</h2>
+        <p>ลบได้เฉพาะเตียงที่มีสถานะว่างเท่านั้น</p>
+      </div>
+    </div>
+
+    <div class="panel table-wrap">
+      <table class="bed-manage-table">
+        <thead>
+          <tr>
+            <th>ชื่อเตียง</th>
+            <th>พื้นที่</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bedRows||'<tr><td colspan="4" class="empty">ยังไม่มีข้อมูลเตียง</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>เพิ่มเตียงใหม่</h2>
+        <p>เพิ่มเตียงหรือห้องบริการในร้าน</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field">
+          <label>ชื่อเตียง</label>
+          <input id="newBedName" placeholder="เช่น เตียง 7">
+        </div>
+
+        <div class="field">
+          <label>พื้นที่</label>
+          <select id="newBedArea">
+            <option>ห้องหลัก</option>
+            <option>ห้อง Aroma</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addBed()">+ บันทึกเตียง</button>
+      </div>
+    </div>
+  `;
+
+  updateBedTimers();
+}
+
+/* เปิดหน้าต่างยืนยันลบเตียง */
+
+function openDeleteBedModal(id) {
+  const bed=state.beds.find(x=>
+    String(x.id)===String(id) && active(x.active)
+  );
+
+  if(!bed) {
+    notify('ไม่พบข้อมูลเตียงนี้','error');
+    return;
+  }
+
+  if(bed.status!=='ว่าง') {
+    notify('ลบได้เฉพาะเตียงที่ว่างเท่านั้น','error');
+    return;
+  }
+
+  pendingDeleteBed={
+    id:bed.id,
+    name:bed.name
+  };
+
+  document.getElementById('deleteBedName').textContent=bed.name;
+  document.getElementById('deleteBedModal').classList.remove('hidden');
+}
+
+function closeDeleteBedModal() {
+  document.getElementById('deleteBedModal').classList.add('hidden');
+  pendingDeleteBed=null;
+}
+
+/* ยืนยันลบเตียง */
+
+async function confirmDeleteBed() {
+  if(!pendingDeleteBed) return;
+
+  const bedId=pendingDeleteBed.id;
+  const button=document.getElementById('confirmDeleteBedBtn');
+
+  button.disabled=true;
+  button.textContent='กำลังลบ...';
+
+  try {
+    const result=await api('deleteBed',{
+      bedId:bedId
+    });
+
+    if(!result.ok) {
+      throw new Error(result.error||'ลบเตียงไม่สำเร็จ');
+    }
+
+    closeDeleteBedModal();
+
+    renderBeds();
+    refreshAfterAction();
+
+    notify('ลบเตียงเรียบร้อยแล้ว');
+
+  } catch(err) {
+    notify(err.message,'error');
+
+  } finally {
+    button.disabled=false;
+    button.textContent='ยืนยันลบเตียง';
+  }
+}
+
+async function addBed() {
+  const bed={
+    name:document.getElementById('newBedName').value,
+    area:document.getElementById('newBedArea').value
+  };
+
+  try {
+    const result=await api('saveBed',{bed});
+
+    if(!result.ok) throw new Error(result.error||'เพิ่มเตียงไม่สำเร็จ');
+
+    refreshAfterAction();
+    notify('บันทึกเพิ่มเตียงแล้ว กำลังอัปเดตข้อมูล');
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+/* BED ACTION */
+
+function clickBed(id) {
+  const bed=state.beds.find(x=>String(x.id)===String(id));
+
+  if(!bed) return;
+
+  if(bed.status==='เตรียมไว้') {
+    openPreparedBooking(bed);
+    return;
+  }
+
+  if(bed.status==='กำลังนวด') {
+    finishBookingForBed(bed);
+    return;
+  }
+
+  openBooking(bed);
+}
+
+function getServiceCategory(service) {
+  const explicit=service.category||service.group||service.type;
+  if(explicit) return String(explicit).trim();
+
+  const name=String(service.name||'').toLowerCase();
+
+  if(/นวดไทย|ไทยผ่อนคลาย|แผนไทย|รีดเส้น/.test(name)) return 'นวดไทย';
+  if(/น้ำมัน|ออยล์|oil|อโรม่า|aroma|sports massage|deep tissue/.test(name)) return 'นวดน้ำมัน';
+  if(/ฝ่าเท้า|นวดเท้า|foot/.test(name)) return 'นวดเท้า';
+  if(/ประคบ|หินร้อน|hot stone|สมุนไพร/.test(name)) return 'ประคบสมุนไพรและหินร้อน';
+  if(/หน้า|facial|สครับ|ผิว|spa/.test(name)) return 'สปาและดูแลผิวหน้า';
+
+  return 'บริการอื่น ๆ';
+}
+
+function buildGroupedServiceOptions(services) {
+  const groups=new Map();
+
+  services.forEach(service=>{
+    const category=getServiceCategory(service);
+    if(!groups.has(category)) groups.set(category,[]);
+    groups.get(category).push(service);
+  });
+
+  return Array.from(groups.entries()).map(([category,items])=>`
+    <optgroup label="${escapeHTML(category)}">
+      ${items.map(x=>`
+        <option value="${escapeHTML(x.id)}" data-price="${Number(x.price)}">
+          ${escapeHTML(x.name)} · ${Number(x.minutes)} นาที · ${money(x.price)}
+        </option>
+      `).join('')}
+    </optgroup>
+  `).join('');
+}
+
+let memberListCache=[];
+let memberLoading=false;
+
+function setupCustomerTypePicker() {
+  const select=document.getElementById('customerType');
+  if(select && !select.dataset.memberHandler) {
+    select.addEventListener('change', handleCustomerTypeChange);
+    select.dataset.memberHandler='1';
+  }
+}
+
+async function handleCustomerTypeChange() {
+  const type=document.getElementById('customerType').value;
+  const nameInput=document.getElementById('customerName');
+  const note=document.getElementById('memberSelectedNote');
+  if(type==='ลูกค้าประจำ') {
+    nameInput.readOnly=true;
+    nameInput.placeholder='กรุณาเลือกลูกค้าจากรายชื่อสมาชิก';
+    if(!document.getElementById('memberLineUserId').value) nameInput.value='';
+    note.textContent='';
+    await openMemberPicker();
+  } else {
+    nameInput.readOnly=false;
+    nameInput.placeholder='ชื่อลูกค้า';
+    document.getElementById('memberLineUserId').value='';
+    note.textContent='';
+  }
+}
+
+async function openMemberPicker() {
+  const modal=document.getElementById('memberPickerModal');
+  modal.classList.remove('hidden');
+  document.getElementById('memberSearch').value='';
+  document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">กำลังโหลดรายชื่อสมาชิก...</div>';
+  if(memberListCache.length) renderMemberPicker();
+  if(memberLoading) return;
+  memberLoading=true;
+  try {
+    const result=await api('getMembers');
+    if(!result.ok) throw new Error(result.error||'โหลดรายชื่อสมาชิกไม่สำเร็จ');
+    memberListCache=result.members||[];
+    renderMemberPicker();
+  } catch(err) {
+    document.getElementById('memberPickerList').innerHTML='<div class="member-picker-empty">'+escapeHTML(err.message)+'<br>กรุณาลองเปลี่ยนประเภทลูกค้าแล้วเลือกใหม่</div>';
+    notify(err.message,'error');
+  } finally { memberLoading=false; }
+}
+
+function renderMemberPicker() {
+  const query=String(document.getElementById('memberSearch').value||'').trim().toLowerCase();
+  const members=memberListCache.filter(m=>
+    String(m.name||'').toLowerCase().includes(query) || String(m.phone||'').toLowerCase().includes(query)
+  );
+  const list=document.getElementById('memberPickerList');
+  if(!members.length) {
+    list.innerHTML='<div class="member-picker-empty">ไม่พบสมาชิกที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  list.innerHTML=members.map((m,index)=>`
+    <button type="button" class="member-picker-item" onclick="selectMember(${index})">
+      <strong>${escapeHTML(m.name||'ไม่ระบุชื่อ')}</strong>
+      <span class="member-picker-status">${escapeHTML(m.status||'ไม่ระบุสถานะ')}</span>
+      <div class="member-picker-meta">
+        โทร. ${escapeHTML(m.phone||'-')} · ระดับ ${escapeHTML(m.level||'-')}<br>
+        แต้มคงเหลือ ${Number(m.points||0).toLocaleString('th-TH')} · แต้มสะสมตลอดชีพ ${Number(m.lifetimePoints||0).toLocaleString('th-TH')}<br>
+        สมัครเมื่อ ${escapeHTML(m.registerDate||'-')}
+      </div>
+    </button>`).join('');
+  // map visible list so selected index remains correct after search
+  window._nichaVisibleMembers=members;
+}
+
+function selectMember(index,lineUserId) {
+  const member=(window._nichaVisibleMembers||[])[index];
+  if(!member) return;
+  document.getElementById('customerName').value=member.name||'';
+  document.getElementById('memberLineUserId').value=member.lineUserId||lineUserId||'';
+  document.getElementById('memberSelectedNote').textContent=`สมาชิกระดับ ${member.level||'-'} · แต้มคงเหลือ ${Number(member.points||0).toLocaleString('th-TH')} แต้ม · สถานะ ${member.status||'ไม่ระบุ'}`;
+  closeMemberPicker();
+}
+
+function closeMemberPicker() {
+  document.getElementById('memberPickerModal').classList.add('hidden');
+}
+
+function openBooking(bed) {
+  const employees=state.employees.filter(x=>active(x.active));
+  const services=state.services.filter(x=>active(x.active));
+
+  if(!employees.length) {
+    notify('กรุณาเพิ่มพนักงานก่อน');
+    return;
+  }
+
+  if(!services.length) {
+    notify('กรุณาเพิ่มบริการก่อน');
+    return;
+  }
+
+  document.getElementById('bookingBedId').value=bed.id;
+  document.getElementById('bookingBedName').value=bed.name;
+
+  document.getElementById('bookingEmployee').value='';
+  document.getElementById('bookingEmployeeLabel').textContent='กดเพื่อเลือกพนักงานนวด';
+  document.getElementById('bookingEmployeeButton').classList.remove('selected');
+
+  document.getElementById('bookingService').innerHTML=
+    buildGroupedServiceOptions(services);
+
+  document.getElementById('customerName').value='';
+  document.getElementById('customerName').readOnly=false;
+  document.getElementById('memberLineUserId').value='';
+  document.getElementById('memberSelectedNote').textContent='';
+  document.getElementById('customerType').value='ขาจร';
+  setupCustomerTypePicker();
+  document.getElementById('bookingDiscount').value=0;
+
+  updateBookingPrice();
+
+  document.getElementById('bookingModal').classList.remove('hidden');
+}
+
+function getBusyEmployeeIds() {
+  const busy=new Set();
+  (state.activeBookings||[]).forEach(booking=>{
+    const status=String(booking.status||'').trim();
+    if(booking.employeeId && status==='กำลังนวด') {
+      busy.add(String(booking.employeeId));
+    }
+  });
+  return busy;
+}
+
+function renderEmployeePickerList(containerId, selectable) {
+  const employees=(state.employees||[]).filter(x=>active(x.active));
+  const busyIds=getBusyEmployeeIds();
+  const list=document.getElementById(containerId);
+
+  if(!employees.length) {
+    list.innerHTML='<div class="employee-picker-empty">ยังไม่มีพนักงานที่เปิดใช้งาน</div>';
+    return;
+  }
+
+  list.innerHTML=employees.map(employee=>{
+    const busy=busyIds.has(String(employee.id));
+    const name=escapeHTML(employee.name||'ไม่ระบุชื่อ');
+    const id=escapeHTML(employee.id);
+    const canChoose=selectable && !busy;
+    return `
+      <button type="button" class="employee-picker-item ${busy?'unavailable':'available'}"
+        ${canChoose?'onclick="selectBookingEmployee(\''+id+'\')"':''}
+        ${selectable && busy?'disabled':''}>
+        <span class="employee-picker-name">${name}</span>
+        <span class="employee-picker-status ${busy?'unavailable':'available'}">${busy?'ไม่ว่าง':'ว่าง'}</span>
+      </button>`;
+  }).join('');
+}
+
+function openEmployeePicker() {
+  renderEmployeePickerList('employeePickerList',true);
+  document.getElementById('employeePickerModal').classList.remove('hidden');
+  // ใช้ข้อมูลในหน่วยความจำเปิด Popup ทันที; โหลดใหม่เฉพาะเมื่อข้อมูลเก่าเกิน 8 วินาที
+  if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
+    if(!document.getElementById('employeePickerModal').classList.contains('hidden')) renderEmployeePickerList('employeePickerList',true);
+  }).catch(err=>console.warn('Refresh employee status:',err));
+}
+
+function openDashboardStaffPicker() {
+  renderDashboardStaffPicker();
+  document.getElementById('dashboardStaffPickerModal').classList.remove('hidden');
+  // ใช้ข้อมูลล่าสุดที่มีอยู่ก่อน และโหลดใหม่เฉพาะเมื่อ cache เกิน 8 วินาที
+  if(Date.now()-lastRefreshAt>REFRESH_FRESH_MS) refresh(true).then(()=>{
+    if(!document.getElementById('dashboardStaffPickerModal').classList.contains('hidden')) renderDashboardStaffPicker();
+  }).catch(err=>console.warn('Refresh dashboard staff status:',err));
+}
+
+function renderDashboardStaffPicker() {
+  renderEmployeePickerList('dashboardStaffPickerList',false);
+}
+
+function closeDashboardStaffPicker() {
+  document.getElementById('dashboardStaffPickerModal').classList.add('hidden');
+}
+
+function selectBookingEmployee(employeeId) {
+  const employee=(state.employees||[]).find(x=>String(x.id)===String(employeeId));
+  if(!employee) return;
+  if(getBusyEmployeeIds().has(String(employee.id))) {
+    notify('พนักงานท่านนี้กำลังมีงาน ไม่สามารถเลือกได้','error');
+    openEmployeePicker();
+    return;
+  }
+  document.getElementById('bookingEmployee').value=employee.id;
+  document.getElementById('bookingEmployeeLabel').textContent=employee.name;
+  document.getElementById('bookingEmployeeButton').classList.add('selected');
+  closeEmployeePicker();
+}
+
+function closeEmployeePicker() {
+  document.getElementById('employeePickerModal').classList.add('hidden');
+}
+
+function updateBookingPrice() {
+  const select=document.getElementById('bookingService');
+  const option=select.options[select.selectedIndex];
+
+  if(option) {
+    document.getElementById('bookingPrice').value=option.dataset.price;
+  }
+}
+
+function closeModal() {
+  document.getElementById('bookingModal').classList.add('hidden');
+}
+
+function collectBookingForm() {
+  const employeeId=document.getElementById('bookingEmployee').value;
+  if(document.getElementById('customerType').value==='ลูกค้าประจำ' && !document.getElementById('memberLineUserId').value) throw new Error('กรุณาเลือกลูกค้าประจำจากรายชื่อสมาชิก');
+  if(!employeeId) throw new Error('กรุณาเลือกพนักงานนวด');
+  if(getBusyEmployeeIds().has(String(employeeId))) throw new Error('พนักงานท่านนี้กำลังมีงาน กรุณาเลือกคนอื่น');
+  return {
+    bedId:document.getElementById('bookingBedId').value,
+    customerType:document.getElementById('customerType').value,
+    customerName:document.getElementById('customerName').value,
+    memberLineUserId:document.getElementById('memberLineUserId').value,
+    employeeId,
+    serviceId:document.getElementById('bookingService').value,
+    price:Number(document.getElementById('bookingPrice').value),
+    discount:Number(document.getElementById('bookingDiscount').value||0)
+  };
+}
+
+/* PREPARED BOOKING */
+
+async function prepareBooking() {
+  try {
+    const result=await api('prepareBooking',{
+      booking:collectBookingForm()
+    });
+
+    if(!result.ok) throw new Error(result.error||'เตรียมรายการไม่สำเร็จ');
+
+    closeModal();
+    notify('บันทึกรายการเตรียมรับลูกค้าแล้ว');
+    refreshAfterAction();
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+function openPreparedBooking(bed) {
+  selectedPreparedBooking=(state.activeBookings||[]).find(x=>
+    String(x.bedId)===String(bed.id) &&
+    x.status==='เตรียมไว้'
+  );
+
+  if(!selectedPreparedBooking) {
+    notify('ไม่พบรายการเตรียมไว้ ข้อมูลอาจยังไม่อัปเดต กรุณารีเฟรชข้อมูล','error');
+    return;
+  }
+
+  const b=selectedPreparedBooking;
+  const employee=state.employees.find(x=>
+    String(x.id)===String(b.employeeId)
+  );
+
+  document.getElementById('preparedDetails').innerHTML=`
+    <p><b>${escapeHTML(b.customerName||'ลูกค้าทั่วไป')}</b> · ${escapeHTML(b.customerType||'')}</p>
+    <p>บริการ: ${escapeHTML(b.serviceName||'-')} · ${Number(b.minutes||0)} นาที</p>
+    <p>หมอนวด: ${escapeHTML(b.employeeName||(employee||{}).name||'-')}</p>
+    <p>ราคา: ${money(b.price)} · ส่วนลด: ${money(b.discount)} · สุทธิ: ${money(b.net)}</p>
+  `;
+
+  document.getElementById('preparedModal').classList.remove('hidden');
+}
+
+function closePreparedModal() {
+  document.getElementById('preparedModal').classList.add('hidden');
+  selectedPreparedBooking=null;
+}
+
+async function startPreparedBooking() {
+  if(!selectedPreparedBooking) return;
+
+  try {
+    const result=await api('startPreparedBooking',{
+      bookingId:selectedPreparedBooking.id
+    });
+
+    if(!result.ok) throw new Error(result.error||'เริ่มนวดไม่สำเร็จ');
+
+    closePreparedModal();
+    notify('เริ่มนวดเรียบร้อยแล้ว');
+    refreshAfterAction();
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+async function cancelPreparedBooking() {
+  if(!selectedPreparedBooking) return;
+
+  try {
+    const result=await api('cancelPreparedBooking',{
+      bookingId:selectedPreparedBooking.id
+    });
+
+    if(!result.ok) throw new Error(result.error||'ยกเลิกรายการไม่สำเร็จ');
+
+    closePreparedModal();
+    notify('ยกเลิกรายการเตรียมไว้แล้ว');
+    refreshAfterAction();
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+/* START MASSAGE */
+
+async function startBooking() {
+  try {
+    const booking=collectBookingForm();
+    const result=await api('startBooking',{booking});
+
+    if(!result.ok) throw new Error(result.error||'เริ่มงานไม่สำเร็จ');
+
+    closeModal();
+    notify('เริ่มงานนวดเรียบร้อยแล้ว');
+    refreshAfterAction();
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+/* CHECKOUT */
+
+function finishBookingForBed(bed) {
+  try {
+    const booking=(state.activeBookings||[]).find(x=>
+      String(x.bedId)===String(bed.id) &&
+      x.status==='กำลังนวด'
+    );
+
+    if(!booking) {
+      throw new Error('ไม่พบรายการนวดของเตียงนี้ กรุณารีเฟรชข้อมูล');
+    }
+
+    checkoutBooking=booking;
+    checkoutBed=bed;
+
+    const gross=Number(booking.price||0);
+    const discount=Number(booking.discount||0);
+    const net=Number(booking.net||(gross-discount));
+
+    const staff=booking.staffAmount!=='' && booking.staffAmount!==undefined && booking.staffAmount!==null
+      ? Number(booking.staffAmount)
+      : Math.min(net,net*Number(booking.shareStaffPct||0)/100);
+    const shop=booking.shopAmount!=='' && booking.shopAmount!==undefined && booking.shopAmount!==null
+      ? Number(booking.shopAmount)
+      : Math.max(0,net-staff);
+    const owner=0;
+
+    document.getElementById('checkoutSubtitle').textContent=
+      `${bed.name} · ${booking.customerName||'ลูกค้าทั่วไป'}`;
+
+    document.getElementById('checkoutDetails').innerHTML=`
+      <div class="checkout-lines">
+        <div class="checkout-line">
+          <span>บริการ</span>
+          <b>${escapeHTML(booking.serviceName||'-')} · ${Number(booking.minutes||0)} นาที</b>
+        </div>
+        <div class="checkout-line">
+          <span>พนักงานนวด</span>
+          <b>${escapeHTML(booking.employeeName||(state.employees.find(x=>String(x.id)===String(booking.employeeId))||{}).name||'-')}</b>
+        </div>
+        <div class="checkout-line"><span>ราคาบริการ</span><b>${money(gross)}</b></div>
+        <div class="checkout-line"><span>ส่วนลด</span><b>− ${money(discount)}</b></div>
+      </div>
+
+      <div class="checkout-total">
+        <small>ยอดสุทธิที่ต้องชำระ</small>
+        <strong>${money(net)}</strong>
+      </div>
+
+      <div style="font-weight:500;color:var(--green);margin:12px 0 5px">
+        รายละเอียดการแบ่งค่ามือ
+      </div>
+
+      <table class="share-table">
+        <thead>
+          <tr><th>ผู้รับ</th><th>รูปแบบค่ามือ</th><th style="text-align:right">จำนวนเงิน</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ร้าน</td><td>ยอดคงเหลือ</td><td style="text-align:right">${money(shop)}</td></tr>
+          <tr><td>พนักงานนวด</td><td>ค่ามือเท่ากันทุกคน</td><td style="text-align:right">${money(staff)}</td></tr>
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById('cashReceived').value='';
+
+    document.querySelector('input[name="paymentMethod"][value="เงินสด"]').checked=true;
+
+    selectPaymentMethod();
+    updateCashChange();
+
+    document.getElementById('checkoutModal').classList.remove('hidden');
+
+  } catch(err) {
+    notify(err.message,'error');
+  }
+}
+
+function selectPaymentMethod() {
+  const method=document.querySelector('input[name="paymentMethod"]:checked').value;
+
+  document.getElementById('cashFields').classList.toggle('hidden',method!=='เงินสด');
+  document.getElementById('cashOption').classList.toggle('selected',method==='เงินสด');
+  document.getElementById('transferOption').classList.toggle('selected',method==='โอนเงิน');
+
+  updateCashChange();
+}
+
+function updateCashChange() {
+  if(!checkoutBooking) return;
+
+  const method=document.querySelector('input[name="paymentMethod"]:checked').value;
+  const net=Number(checkoutBooking.net||0);
+  const received=Number(document.getElementById('cashReceived').value||0);
+  const change=Math.max(0,received-net);
+
+  document.getElementById('cashChange').textContent=money(change);
+
+  const hint=document.getElementById('cashHint');
+
+  if(method==='เงินสด' && received<net) {
+    hint.textContent=received>0
+      ? `ยังขาดอีก ${money(net-received)}`
+      : 'กรอกจำนวนเงินที่รับ ระบบจะคำนวณเงินทอนให้อัตโนมัติ';
+
+    hint.style.color='var(--red)';
+
+  } else {
+    hint.textContent='จำนวนเงินครบถ้วน';
+    hint.style.color='var(--green)';
+  }
+}
+
+function closeCheckout() {
+  document.getElementById('checkoutModal').classList.add('hidden');
+  checkoutBooking=null;
+  checkoutBed=null;
+}
+
+async function confirmCheckout() {
+  if(!checkoutBooking) return;
+
+  const method=document.querySelector('input[name="paymentMethod"]:checked').value;
+  const net=Number(checkoutBooking.net||0);
+  const received=method==='เงินสด'
+    ? Number(document.getElementById('cashReceived').value||0)
+    : net;
+
+  if(method==='เงินสด' && received<net) {
+    notify('จำนวนเงินสดที่รับยังไม่ครบยอดชำระ','error');
+    return;
+  }
+
+  const button=document.getElementById('confirmCheckoutBtn');
+
+  button.disabled=true;
+  button.textContent='กำลังบันทึก...';
+
+  try {
+    const result=await api('finishBooking',{
+      bookingId:checkoutBooking.id,
+      paymentMethod:method,
+      cashReceived:received
+    });
+
+    if(!result.ok) throw new Error(result.error||'บันทึกการชำระเงินไม่สำเร็จ');
+
+    closeCheckout();
+    notify('รับชำระเงินและจบงานเรียบร้อยแล้ว');
+    refreshAfterAction();
+
+  } catch(err) {
+    notify(err.message,'error');
+
+  } finally {
+    button.disabled=false;
+    button.textContent='ยืนยันรับชำระและจบงาน';
+  }
+}
+
+/* STAFF - SHARED PAYOUT PER SERVICE */
+let sharedPayoutDraft={};
+
+function renderPayoutRows(){
+  const services=(state.services||[]).filter(x=>active(x.active));
+  const container=document.getElementById('staffPayoutRows');
+  if(!container) return;
+  if(!services.length){container.innerHTML='<div class="panel empty">ไม่พบรายการบริการที่เปิดใช้งาน</div>';return;}
+  container.innerHTML=services.map(service=>{
+    const value=Number(sharedPayoutDraft[String(service.id)]||0);
+    return `<div class="payout-row">
+      <div class="payout-service"><div class="payout-service-name">${escapeHTML(service.name)}</div>
+      <div class="payout-service-meta">${Number(service.minutes)} นาที · ราคาบริการ ${money(service.price)}</div></div>
+      <div class="payout-value-wrap"><input type="number" min="0" step="1" value="${value}" aria-label="ค่ามือ ${escapeHTML(service.name)}" oninput="updateSharedPayout('${escapeHTML(service.id)}',this.value)"><span class="payout-value-unit">บาท/ครั้ง</span></div>
+    </div>`;
+  }).join('');
+}
+
+function updateSharedPayout(serviceId,value){sharedPayoutDraft[String(serviceId)]=value===''?0:Number(value);}
+
+
+async function addEmployee(){
+  const name=document.getElementById('staffName').value.trim();
+  if(!name){notify('กรุณาระบุชื่อพนักงาน','error');return;}
   try{
-    const [init,res]=await Promise.all([api('init'),api('getReservations')]);
-    if(!init.ok)throw new Error(init.error||'โหลดข้อมูลระบบไม่สำเร็จ');
-    if(!res.ok)throw new Error(res.error||'โหลดรายการจองไม่สำเร็จ');
-    appData={reservations:res.reservations||[],beds:init.beds||[],employees:init.employees||[],services:(init.services||[]).filter(x=>x.active),activeBookings:init.activeBookings||[]};
-    render();
-  }catch(e){toast(e.message,true);if(/หมดอายุ|session|เข้าสู่ระบบ/.test(e.message))logout(false);}
+    const result=await api('saveEmployee',{employee:{name:name,phone:document.getElementById('staffPhone').value,type:document.getElementById('staffType').value}});
+    if(!result.ok) throw new Error(result.error||'บันทึกพนักงานไม่สำเร็จ');
+    notify('เพิ่มพนักงานเรียบร้อยแล้ว');
+    lastRefreshAt=0;
+    refreshAfterAction();
+  }catch(err){notify(err.message,'error');}
 }
-function logout(clear=true){if(clear)sessionStorage.removeItem('nicha_token');document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
-function dateValue(v){
-  if(!v)return null;let s=String(v).trim(),m;
-  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))return new Date(+m[1],+m[2]-1,+m[3]);
-  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)))return new Date(+m[3],+m[2]-1,+m[1]);
-  const d=new Date(s);return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate());
+
+async function saveSharedPayouts(){
+  const invalid=Object.values(sharedPayoutDraft).some(v=>!Number.isFinite(Number(v))||Number(v)<0);
+  if(invalid){notify('กรุณากรอกค่ามือเป็นตัวเลขตั้งแต่ 0 บาทขึ้นไป','error');return;}
+  try{
+    const result=await api('saveServicePayouts',{servicePayouts:sharedPayoutDraft});
+    if(!result.ok) throw new Error(result.error||'บันทึกค่ามือไม่สำเร็จ');
+    notify('บันทึกค่ามือกลางเรียบร้อยแล้ว');
+    lastRefreshAt=0;
+    refreshAfterAction();
+  }catch(err){notify(err.message,'error');}
 }
-function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function parseTime(v){const m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:'00:00';}
-function visibleReservations(){return appData.reservations.filter(r=>String(r.status).trim()==='ยืนยันแล้ว');}
-function render(){
-  const all=visibleReservations(),pending=all.filter(r=>!r.alreadyPrepared);
-  document.getElementById('pendingCount').textContent=pending.length;
-  document.getElementById('preparedCount').textContent=all.length-pending.length;
-  document.getElementById('totalCount').textContent=appData.reservations.length;
-  ['month','week','list'].forEach(v=>document.getElementById('view'+v[0].toUpperCase()+v.slice(1)).classList.toggle('active',view===v));
-  if(view==='month')renderMonth();else if(view==='week')renderWeek();else renderList();
+
+function renderStaff(){
+  const employees=state.employees||[];
+  sharedPayoutDraft={...(state.servicePayouts||{})};
+  document.getElementById('pageContent').innerHTML=`
+    <div class="section-head"><div><h2>พนักงานทั้งหมด</h2><p>พนักงานทุกคนได้รับค่ามือเท่ากันตามรายการบริการ</p></div></div>
+    <div class="panel table-wrap"><table><thead><tr><th>ชื่อพนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody>
+      ${employees.map(x=>`<tr><td>${escapeHTML(x.name)}</td><td>${escapeHTML(x.type||'-')}</td><td>${active(x.active)?'ใช้งาน':'ปิดใช้งาน'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีพนักงาน</td></tr>'}
+    </tbody></table></div>
+    <div class="section-head"><div><h2>เพิ่มพนักงาน</h2><p>เพิ่มรายชื่อพนักงานเข้าระบบ</p></div></div>
+    <div class="panel"><div class="form-grid">
+      <div class="field"><label>ชื่อพนักงาน</label><input id="staffName" placeholder="ชื่อพนักงาน"></div>
+      <div class="field"><label>เบอร์โทรศัพท์</label><input id="staffPhone" placeholder="เบอร์โทร"></div>
+      <div class="field"><label>ประเภทพนักงาน</label><select id="staffType"><option>ประจำ</option><option>พาร์ทไทม์</option></select></div>
+    </div><div class="staff-form-actions"><button class="btn btn-primary" onclick="addEmployee()">+ บันทึกพนักงาน</button></div></div>
+    <div class="section-head"><div><h2>กำหนดค่ามือกลาง</h2><p>ตั้งค่าครั้งเดียว ใช้กับพนักงานทุกคน</p></div></div>
+    <div class="panel"><div style="margin:0 0 10px;font-weight:600;color:var(--green)">ค่ามือพนักงานแยกตามรายการบริการ</div>
+      <p class="payout-help">ตัวอย่าง นวดไทย 60 นาที ราคา 200 บาท กำหนดค่ามือ 130 บาท พนักงานทุกคนจะได้รับ 130 บาท และร้านได้รับส่วนที่เหลือ 70 บาท (ก่อนหัก/หลังคิดส่วนลดตามระบบ)</p>
+      <div id="staffPayoutRows" class="payout-list"></div>
+      <div class="staff-form-actions"><button class="btn btn-primary" onclick="saveSharedPayouts()">บันทึกค่ามือทั้งหมด</button></div>
+    </div>`;
+  renderPayoutRows();
 }
-function setView(v){view=v;render();}
-function goToday(){cursor=new Date();cursor.setDate(1);render();}
-function movePeriod(n){if(view==='week'){cursor.setDate(cursor.getDate()+n*7);}else{cursor.setMonth(cursor.getMonth()+n);cursor.setDate(1);}render();}
-function labelDate(d){return d.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});}
-function eventsFor(d){return visibleReservations().filter(r=>{const rd=dateValue(r.bookingDate);return rd&&dateKey(rd)===dateKey(d);}).sort((a,b)=>parseTime(a.bookingTime).localeCompare(parseTime(b.bookingTime)));}
-function eventHtml(r){
- const cls=r.alreadyPrepared?'done':'';
- return `<button class="event ${cls}" onclick="openDetail('${escAttr(r.id)}')"><strong>${esc(parseTime(r.bookingTime))} · ${esc(r.customerName||'ลูกค้า')}</strong><em>${esc(r.serviceName||'ไม่ระบุบริการ')}</em>${r.alreadyPrepared?'<em>ส่งเข้าหน้าร้านแล้ว</em>':''}</button>`;
+
+/* SERVICES */
+
+function renderServices() {
+  document.getElementById('pageContent').innerHTML=`
+    <div class="section-head">
+      <div><h2>เมนูบริการของร้าน</h2><p>เลื่อนสวิตช์เพื่อเปิดหรือปิดบริการที่ต้องการแสดงให้เลือกตอนรับลูกค้า</p></div>
+    </div>
+
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr><th>ชื่อบริการ</th><th>ระยะเวลา</th><th>ราคา</th><th>เปิด / ปิด</th></tr></thead>
+        <tbody>
+          ${(state.services||[]).map(x=>{
+            const enabled=active(x.active);
+            return `<tr>
+              <td>${escapeHTML(x.name)}</td>
+              <td>${Number(x.minutes)} นาที</td>
+              <td>${money(x.price)}</td>
+              <td style="white-space:nowrap">
+                <label class="service-switch" title="${enabled?'ปิดบริการ':'เปิดบริการ'}">
+                  <input type="checkbox" ${enabled?'checked':''} onchange="toggleServiceActive('${escapeHTML(x.id)}',this.checked,this)">
+                  <span class="service-switch-track"></span>
+                </label>
+                <span class="service-status ${enabled?'on':'off'}">${enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span>
+              </td>
+            </tr>`;
+          }).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีบริการ</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+
+  `;
 }
-function renderMonth(){
- const y=cursor.getFullYear(),m=cursor.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay()),today=dateKey(new Date());
- document.getElementById('periodLabel').textContent=cursor.toLocaleDateString('th-TH',{month:'long',year:'numeric'});
- let h=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'].map(x=>`<div class="weekday">${x}</div>`).join('');
- for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const ev=eventsFor(d);h+=`<div class="day ${d.getMonth()!==m?'muted':''} ${dateKey(d)===today?'today':''}"><div class="day-number"><span>${d.getDate()}</span><span>${ev.length||''}</span></div>${ev.slice(0,3).map(eventHtml).join('')}${ev.length>3?`<div class="event more">อีก ${ev.length-3} รายการ</div>`:''}</div>`;}
- document.getElementById('calendarContent').innerHTML=`<div class="calendar">${h}</div>`;
+
+async function toggleServiceActive(serviceId, enabled, control) {
+  const service=(state.services||[]).find(x=>String(x.id)===String(serviceId));
+  if(!service || (control && control.dataset.saving==='1')) return;
+  const previous=active(service.active);
+  const row=control?.closest('tr');
+  const statusLabel=row?.querySelector('.service-status');
+
+  // Optimistic UI: เปลี่ยนหน้าจอทันที แล้วค่อยยืนยันกับเซิร์ฟเวอร์
+  service.active=enabled;
+  if(control) { control.disabled=true; control.dataset.saving='1'; }
+  if(statusLabel) {
+    statusLabel.textContent=enabled?'เปิดใช้งาน':'ปิดใช้งาน';
+    statusLabel.classList.toggle('on',enabled);
+    statusLabel.classList.toggle('off',!enabled);
+  }
+  try {
+    const result=await api('setServiceActive',{serviceId,active:enabled});
+    if(!result.ok) throw new Error(result.error||'เปลี่ยนสถานะบริการไม่สำเร็จ');
+    lastRefreshAt=0;
+    notify(enabled?'เปิดใช้งานบริการแล้ว':'ปิดใช้งานบริการแล้ว');
+    refreshAfterAction();
+  } catch(err) {
+    service.active=previous;
+    if(control) control.checked=previous;
+    if(statusLabel) {
+      statusLabel.textContent=previous?'เปิดใช้งาน':'ปิดใช้งาน';
+      statusLabel.classList.toggle('on',previous);
+      statusLabel.classList.toggle('off',!previous);
+    }
+    notify(err.message,'error');
+  } finally {
+    if(control) { control.disabled=false; delete control.dataset.saving; }
+  }
 }
-function renderWeek(){
- const start=new Date(cursor),dow=start.getDay();start.setDate(start.getDate()-dow);
- document.getElementById('periodLabel').textContent=labelDate(start)+' – '+labelDate(new Date(start.getFullYear(),start.getMonth(),start.getDate()+6));
- let h=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'].map(x=>`<div class="weekday">${x}</div>`).join('');
- for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const ev=eventsFor(d);h+=`<div class="day ${dateKey(d)===dateKey(new Date())?'today':''}"><div class="day-number"><span>${d.getDate()}</span></div>${ev.map(eventHtml).join('')||'<div style="font-size:11px;color:#adb5ad">ไม่มีรายการ</div>'}</div>`;}
- document.getElementById('calendarContent').innerHTML=`<div class="calendar">${h}</div>`;
+
+
+/* REPORT */
+
+let reportRequestId=0;
+async function renderReport() {
+  const content=document.getElementById('pageContent');
+  const requestId=++reportRequestId;
+  const period=document.getElementById('reportPeriod')?.value||'day';
+  const dateKey=document.getElementById('reportDate')?.value||new Date().toLocaleDateString('en-CA');
+  content.innerHTML='<div class="panel empty">กำลังโหลดรายงาน...</div>';
+  try {
+    const r=await api('report',{period,dateKey});
+    if(requestId!==reportRequestId || currentPage!=='report') return;
+    if(!r.ok) throw new Error(r.error||'โหลดรายงานไม่สำเร็จ');
+    const dateValue=escapeHTML(dateKey);
+    const periodOptions=`<option value="day" ${period==='day'?'selected':''}>รายวัน</option><option value="month" ${period==='month'?'selected':''}>รายเดือน</option><option value="year" ${period==='year'?'selected':''}>รายปี</option>`;
+    const rows=(r.details||[]).map((x,i)=>{
+      const dt=x.paidAt?new Date(x.paidAt):null;
+      const when=dt&&!isNaN(dt.getTime())?dt.toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}):'-';
+      return `<tr>
+        <td>${i+1}</td><td>${escapeHTML(when)}</td>
+        <td><b>${escapeHTML(x.customerName)}</b><div class="muted-small">${escapeHTML(x.customerType)}</div></td>
+        <td>${escapeHTML(x.serviceName)}<div class="muted-small">${Number(x.minutes||0)} นาที</div></td>
+        <td>${escapeHTML(x.employeeName||'-')}</td>
+        <td>${money(x.price)}</td><td>${money(x.discount)}</td><td><b>${money(x.net)}</b></td>
+        <td><span class="payment-tag ${x.paymentMethod==='โอนเงิน'?'transfer':'cash'}">${escapeHTML(x.paymentMethod)}</span>${x.paymentMethod==='เงินสด'&&Number(x.changeAmount)>0?`<div class="muted-small">รับ ${money(x.cashReceived)} / ทอน ${money(x.changeAmount)}</div>`:''}</td>
+      </tr>`;
+    }).join('');
+    content.innerHTML=`
+      <div class="section-head"><div><h2>รายงานการใช้บริการและรายได้</h2><p>ดูประวัติลูกค้าและยอดชำระ แยกตามช่วงเวลา</p></div><button class="btn btn-light" onclick="renderReport()">↻ รีเฟรช</button></div>
+      <div class="panel report-filter">
+        <label>รูปแบบรายงาน<select id="reportPeriod" onchange="renderReport()">${periodOptions}</select></label>
+        <label>เลือกวันที่อ้างอิง<input id="reportDate" type="date" value="${dateValue}" onchange="renderReport()"></label>
+        <div class="report-period-label">ช่วงรายงาน: <b>${escapeHTML(r.label||'')}</b></div>
+      </div>
+      <div class="report-grid">
+        <div class="report-card"><span>ยอดรับชำระสุทธิ</span><strong>${money(r.total)}</strong></div>
+        <div class="report-card"><span>ยอดก่อนหักส่วนลด</span><strong>${money(r.gross)}</strong></div>
+        <div class="report-card"><span>ส่วนลดรวม</span><strong>${money(r.discount)}</strong></div>
+        <div class="report-card"><span>รายได้ร้าน</span><strong>${money(r.shop)}</strong></div>
+        <div class="report-card"><span>ค่ามือพนักงาน</span><strong>${money(r.staff)}</strong></div>
+        <div class="report-card"><span>จำนวนรายการ</span><strong>${Number(r.count||0)} รายการ</strong></div>
+        <div class="report-card"><span>รับเงินสด</span><strong>${money(r.cash)}</strong></div>
+        <div class="report-card"><span>รับเงินโอน</span><strong>${money(r.transfer)}</strong></div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <div class="section-head" style="margin-bottom:12px"><div><h3>รายละเอียดลูกค้าที่มาใช้บริการ</h3><p>แสดงเฉพาะรายการที่ชำระเงินแล้วในช่วงเวลาที่เลือก</p></div><b>${Number(r.count||0)} รายการ</b></div>
+        <div class="table-wrap"><table class="data-table report-detail-table"><thead><tr><th>#</th><th>วัน / เวลา</th><th>ลูกค้า</th><th>บริการ</th><th>พนักงาน</th><th>ราคา</th><th>ส่วนลด</th><th>สุทธิ</th><th>ชำระโดย</th></tr></thead><tbody>${rows||'<tr><td colspan="9" class="empty-cell">ไม่มีรายการใช้บริการในช่วงเวลานี้</td></tr>'}</tbody></table></div>
+      </div>`;
+  } catch(err) {
+    if(requestId!==reportRequestId || currentPage!=='report') return;
+    content.innerHTML=`<div class="panel"><p style="color:var(--red)">${escapeHTML(err.message)}</p></div>`;
+  }
 }
-function renderList(){
- const all=visibleReservations().slice().sort((a,b)=>{const da=dateValue(a.bookingDate)||new Date(0),db=dateValue(b.bookingDate)||new Date(0);return da-db||parseTime(a.bookingTime).localeCompare(parseTime(b.bookingTime));});
- document.getElementById('periodLabel').textContent='รายการจองทั้งหมด';
- if(!all.length){document.getElementById('calendarContent').innerHTML='<div class="empty">ยังไม่มีรายการจองที่ยืนยันแล้ว</div>';return;}
- const groups={};all.forEach(r=>{const d=dateValue(r.bookingDate);const k=d?dateKey(d):'ไม่ระบุวันที่';(groups[k]||(groups[k]=[])).push(r);});
- let h='<div class="list-view">';
- Object.keys(groups).sort().forEach(k=>{const d=dateValue(k);h+=`<div class="list-day"><h3>${d?labelDate(d):k}</h3>${groups[k].map(r=>`<div class="list-event"><div><b>${esc(parseTime(r.bookingTime))} · ${esc(r.customerName)}</b><div style="font-size:12px;color:#78847d">${esc(r.serviceName)}</div></div><button class="btn btn-light" onclick="openDetail('${escAttr(r.id)}')">${r.alreadyPrepared?'ดูรายการ':'ตรวจสอบ'}</button></div>`).join('')}</div>`;});
- document.getElementById('calendarContent').innerHTML=h+'</div>';
-}
-function openDetail(id){
- selected=appData.reservations.find(r=>String(r.id)===String(id));if(!selected)return;
- const rows=[['ชื่อลูกค้า',selected.customerName],['เบอร์โทร',selected.phone],['วันที่จอง',selected.bookingDate],['เวลาจอง',selected.bookingTime],['บริการที่ลูกค้าจอง',selected.serviceName],['หมอนวดที่ระบุ',selected.requestedTherapist],['สถานะ',selected.status],['รหัสรายการ',selected.id],['หมายเหตุ',selected.note||'-']];
- document.getElementById('reservationDetails').innerHTML=rows.map((x,i)=>`<div class="detail ${i===4||i===8?'full':''}"><small>${esc(x[0])}</small><strong>${esc(x[1]||'-')}</strong></div>`).join('');
- const services=appData.services;document.getElementById('serviceSelect').innerHTML='<option value="">-- เลือกบริการให้ตรงกับรายการจอง --</option>'+services.map(s=>`<option value="${escAttr(s.id)}">${esc(s.name)} · ${Number(s.minutes)} นาที · ${money(s.price)}</option>`).join('');
- const match=services.find(s=>norm(s.name)===norm(selected.serviceName));if(match)document.getElementById('serviceSelect').value=match.id;
- const busyBeds=new Set(appData.activeBookings.map(b=>String(b.bedId)));
- document.getElementById('bedSelect').innerHTML='<option value="">-- เลือกเตียง --</option>'+appData.beds.filter(b=>b.status==='ว่าง'&&!busyBeds.has(String(b.id))).map(b=>`<option value="${escAttr(b.id)}">${esc(b.name)}${b.area?' · '+esc(b.area):''}</option>`).join('');
- const busyEmployees=new Set(appData.activeBookings.map(b=>String(b.employeeId)));
- document.getElementById('employeeSelect').innerHTML='<option value="">-- เลือกหมอนวด --</option>'+appData.employees.filter(e=>active(e.active)&&!busyEmployees.has(String(e.id))).map(e=>`<option value="${escAttr(e.id)}">${esc(e.name)}</option>`).join('');
- document.getElementById('modalMessage').textContent='';
- const already=!!selected.alreadyPrepared;
- document.getElementById('prepareBtn').disabled=already;
- document.getElementById('prepareBtn').textContent=already?'ส่งเข้าหน้าร้านแล้ว':'ยืนยันและส่งเข้าหน้าร้าน';
- document.getElementById('detailOverlay').classList.add('show');
-}
-function closeDetail(){document.getElementById('detailOverlay').classList.remove('show');selected=null;}
-async function prepareSelected(){
- if(!selected)return;
- const serviceId=document.getElementById('serviceSelect').value,bedId=document.getElementById('bedSelect').value,employeeId=document.getElementById('employeeSelect').value;
- const msg=document.getElementById('modalMessage'),btn=document.getElementById('prepareBtn');msg.textContent='';
- if(!serviceId||!bedId||!employeeId){msg.textContent='กรุณาเลือกบริการ เตียง และหมอนวดให้ครบ';return;}
- if(!confirm('ยืนยันนำรายการจองนี้เข้าหน้าร้านในสถานะ “เตรียมไว้” ใช่หรือไม่?'))return;
- btn.disabled=true;btn.textContent='กำลังบันทึก...';
- try{
-  const r=await api('prepareReservation',{reservation:{reservationId:selected.id,serviceId,bedId,employeeId}});
-  if(!r.ok)throw new Error(r.error||'ส่งเข้าหน้าร้านไม่สำเร็จ');
-  toast(r.duplicate?'รายการนี้ถูกส่งเข้าหน้าร้านแล้ว':'ส่งรายการเข้าหน้าร้านเรียบร้อย');
-  closeDetail();await loadAll();
- }catch(e){msg.textContent=e.message;btn.disabled=false;btn.textContent='ยืนยันและส่งเข้าหน้าร้าน';}
-}
-function active(v){return v===true||String(v).toLowerCase()==='true'||String(v)==='1';}
-function norm(v){return String(v||'').toLowerCase().replace(/\s+/g,'').replace(/[()（）]/g,'');}
-function money(v){return Number(v||0).toLocaleString('th-TH')+' บาท';}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function escAttr(v){return esc(v).replace(/`/g,'&#96;');}
-function toast(msg,error=false){const t=document.getElementById('toast');t.textContent=msg;t.classList.remove('hidden','error');if(error)t.classList.add('error');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add('hidden'),3200);}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();if(e.key==='Enter'&&document.activeElement.id==='pin')login();});
-(async()=>{if(sessionStorage.getItem('nicha_token')){try{await enterApp();}catch(e){logout(false);}}})();
+
+/* ป้องกันการกดปุ่มบันทึก/ยืนยันซ้ำระหว่างรอเซิร์ฟเวอร์ */
+(function installActionGuards(){
+  const actionNames=[
+    'login','prepareBooking','startPreparedBooking','cancelPreparedBooking',
+    'startBooking','confirmCheckout','addBed','addEmployee',
+    'confirmDeleteBed'
+  ];
+  const locks=new Set();
+
+  actionNames.forEach(name=>{
+    const original=window[name];
+    if(typeof original!=='function') return;
+
+    window[name]=function(...args){
+      if(locks.has(name)) return;
+      locks.add(name);
+
+      const button=document.activeElement && document.activeElement.tagName==='BUTTON'
+        ? document.activeElement
+        : null;
+      const oldText=button ? button.textContent : '';
+      if(button) {
+        button.disabled=true;
+        button.classList.add('loading');
+        button.setAttribute('aria-busy','true');
+      }
+
+      let result;
+      try {
+        result=original.apply(this,args);
+      } catch(error) {
+        locks.delete(name);
+        if(button) {
+          button.disabled=false;
+          button.classList.remove('loading');
+          button.removeAttribute('aria-busy');
+        }
+        throw error;
+      }
+
+      return Promise.resolve(result).finally(()=>{
+        locks.delete(name);
+        if(button && button.isConnected) {
+          button.disabled=false;
+          button.classList.remove('loading');
+          button.removeAttribute('aria-busy');
+          // ฟังก์ชันบางตัวเปลี่ยนข้อความปุ่มระหว่างทำงานอยู่แล้ว
+          if(!button.textContent.trim()) button.textContent=oldText;
+        }
+      });
+    };
+  });
+})();
+
+/* STARTUP */
+
+document.getElementById('pin').addEventListener('keydown',event=>{
+  if(event.key==='Enter') login();
+});
+
+/* กด Spacebar ในหน้า Checkout เพื่อรับเงินสดพอดีกับยอดสุทธิ */
+
+document.addEventListener('keydown',event=>{
+  const modal=document.getElementById('checkoutModal');
+
+  if(!modal || modal.classList.contains('hidden')) return;
+
+  if(event.code!=='Space' && event.key!==' ') return;
+  if(event.repeat) return;
+
+  const cashMethod=document.querySelector('input[name="paymentMethod"][value="เงินสด"]');
+
+  if(!cashMethod || !cashMethod.checked) return;
+  if(!checkoutBooking) return;
+
+  event.preventDefault();
+
+  const cashInput=document.getElementById('cashReceived');
+
+  if(!cashInput) return;
+
+  cashInput.value=Number(checkoutBooking.net||0).toFixed(2);
+
+  updateCashChange();
+});
+
+/* อัปเดตเวลาบนหน้าเว็บทุก 1 วินาที */
+// นาฬิกาอัปเดตเฉพาะหน้า Dashboard; เมื่อสลับแท็บจะหยุดงานที่ไม่จำเป็น
+let bedTimerInterval=setInterval(updateBedTimers,1000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) {
+    if(bedTimerInterval) clearInterval(bedTimerInterval);
+    bedTimerInterval=null;
+  } else if(!bedTimerInterval) {
+    updateBedTimers();
+    bedTimerInterval=setInterval(updateBedTimers,1000);
+  }
+});
+
+todayText();
 </script>
+
 </body>
 </html>
