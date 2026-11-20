@@ -62,7 +62,7 @@
   </header>
   <main class="wrap">
     <div class="toolbar">
-      <div><h1>ปฏิทินรายการจอง</h1><p>แสดงรายการจองที่รอลูกค้ายืนยันผ่าน LINE และรายการที่ลูกค้ายืนยันแล้ว</p></div>
+      <div><h1>ปฏิทินรายการจอง</h1><p>แสดงรายการจองที่รอทางร้านตรวจสอบและกดยืนยันคิว</p></div>
       <div class="controls">
         <button class="btn btn-light" onclick="goToday()">วันนี้</button>
         <div class="view-switch"><button id="viewMonth" class="active" onclick="setView('month')">เดือน</button><button id="viewWeek" onclick="setView('week')">สัปดาห์</button><button id="viewList" onclick="setView('list')">รายการ</button></div>
@@ -79,7 +79,7 @@
         <div class="controls"><button class="btn btn-light" onclick="loadAll()">โหลดข้อมูลล่าสุด</button></div>
       </div>
       <div id="calendarContent"></div>
-      <div class="legend"><span><i class="dot" style="background:#c99b38"></i>รอลูกค้ายืนยันผ่าน LINE</span><span><i class="dot"></i>ยืนยันแล้ว / รอจัดเตรียม</span><span><i class="dot grey"></i>ส่งเข้าหน้าร้านแล้ว</span></div>
+      <div class="legend"><span><i class="dot" style="background:#c99b38"></i>รอร้านกดยืนยันคิว</span><span><i class="dot"></i>ร้านยืนยันแล้ว / รอจัดเตรียม</span><span><i class="dot grey"></i>ส่งเข้าหน้าร้านแล้ว</span></div>
     </section>
   </main>
 </div>
@@ -170,7 +170,7 @@ function eventHtml(r){
  const status=String(r.status||'').trim();
  const awaiting=status==='รอยืนยัน';
  const cls=r.alreadyPrepared?'done':(awaiting?'awaiting':'');
- const tag=r.alreadyPrepared?'ส่งเข้าหน้าร้านแล้ว':(awaiting?'รอลูกค้ายืนยันผ่าน LINE':'รอจัดเตรียม');
+ const tag=r.alreadyPrepared?'ส่งเข้าหน้าร้านแล้ว':(awaiting?'รอร้านกดยืนยันคิว':'ร้านยืนยันแล้ว / รอจัดเตรียม');
  return `<button class="event ${cls}" onclick="openDetail('${escAttr(r.id)}')"><strong>${esc(parseTime(r.bookingTime))} · ${esc(r.customerName||'ลูกค้า')}</strong><em>${esc(r.serviceName||'ไม่ระบุบริการ')}</em><em>${tag}</em></button>`;
 }
 function renderMonth(){
@@ -198,7 +198,7 @@ function renderList(){
 }
 function openDetail(id){
  selected=appData.reservations.find(r=>String(r.id)===String(id));if(!selected)return;
- const rows=[['ชื่อลูกค้า',selected.customerName],['เบอร์โทร',selected.phone],['วันที่จอง',selected.bookingDate],['เวลาจอง',selected.bookingTime],['บริการที่ลูกค้าจอง',selected.serviceName],['หมอนวดที่ระบุ',selected.requestedTherapist],['สถานะ',selected.status],['ผลแจ้งลูกค้า',selected.confirmationStatus||'-'],['รหัสรายการ',selected.id],['หมายเหตุ',selected.note||'-']];
+ const rows=[['ชื่อลูกค้า',selected.customerName],['เบอร์โทร',selected.phone],['วันที่จอง',selected.bookingDate],['เวลาจอง',selected.bookingTime],['บริการที่ลูกค้าจอง',selected.serviceName],['หมอนวดที่ระบุ',selected.requestedTherapist],['สถานะ',selected.status],['ผลตอบกลับ LINE',selected.confirmationStatus||'รอลูกค้าตอบกลับ'],['รหัสรายการ',selected.id],['หมายเหตุ',selected.note||'-']];
  document.getElementById('reservationDetails').innerHTML=rows.map((x,i)=>`<div class="detail ${i===4||i===8?'full':''}"><small>${esc(x[0])}</small><strong>${esc(x[1]||'-')}</strong></div>`).join('');
  const slipArea=document.getElementById('slipActionArea');
  if(selected.slipFileId){slipArea.innerHTML=`<button type="button" class="slip-action" onclick="openReservationSlip()">▣ ดูสลิปโอนเงิน</button><div class="slip-missing" style="margin-top:5px">เปิดไฟล์สลิปจาก Google Drive</div>`;}else{slipArea.innerHTML='<div class="slip-missing">ไม่มีรหัสไฟล์สลิปแนบมากับรายการนี้</div>';}
@@ -221,16 +221,16 @@ function openDetail(id){
  const workflow=String(selected.workflowStatus||'');
  const effectiveWorkflow=workflow || (sourceConfirmed?'ยืนยันคิว':'');
  const cancelled=workflow==='ยกเลิกคิว'||sourceStatus==='ยกเลิกแล้ว';
- document.getElementById('workflowState').textContent='สถานะฐานข้อมูล: '+(selected.status||'ไม่ระบุ')+' · สถานะร้าน: '+(cancelled?'ยกเลิกคิว':(effectiveWorkflow||(awaitingCustomer?'รอร้านยืนยัน':'รอยืนยันคิว')))+(already?' · ส่งเข้าหน้าร้านแล้ว':'');
+ document.getElementById('workflowState').textContent='สถานะฐานข้อมูล: '+(selected.status||'ไม่ระบุ')+' · สถานะร้าน: '+(cancelled?'ยกเลิกคิว':(effectiveWorkflow||(awaitingCustomer?'รอลูกค้ายืนยัน':'รอยืนยันคิว')))+(already?' · ส่งเข้าหน้าร้านแล้ว':'');
  const confirmBtn=document.getElementById('confirmQueueBtn');
- confirmBtn.disabled=cancelled||sourceConfirmed||already;
+ confirmBtn.disabled=sourceConfirmed||cancelled||already;
  confirmBtn.classList.toggle('is-confirmed',sourceConfirmed||effectiveWorkflow==='ยืนยันคิว');
- confirmBtn.textContent=sourceConfirmed?'✓ ร้านยืนยันแล้ว':(cancelled?'คิวถูกยกเลิก':(already?'ส่งเข้าหน้าร้านแล้ว':'✓ ยืนยันการจอง'));
+ confirmBtn.textContent=sourceConfirmed?'✓ ร้านยืนยันคิวแล้ว':'✓ ยืนยันคิว';
  document.getElementById('cancelQueueBtn').disabled=cancelled||selected.bookingStarted===true;
  document.getElementById('cancelQueueBtn').textContent=cancelled?'ยกเลิกคิวแล้ว':'✕ ยกเลิกคิว';
  const canPrepare=sourceConfirmed && !cancelled;
  document.getElementById('prepareBtn').disabled=already||!canPrepare;
- document.getElementById('prepareBtn').textContent=already?'ส่งเข้าหน้าร้านแล้ว':(cancelled?'คิวนี้ถูกยกเลิก':(canPrepare?'ส่งเข้าหน้าร้าน':'ร้านต้องยืนยันการจองก่อน'));
+ document.getElementById('prepareBtn').textContent=already?'ส่งเข้าหน้าร้านแล้ว':(cancelled?'คิวนี้ถูกยกเลิก':(canPrepare?'ยืนยันและส่งเข้าหน้าร้าน':(awaitingCustomer?'รอลูกค้ากดยืนยันใน LINE ก่อน':'รอการยืนยันจาก LINE')));
  document.getElementById('detailOverlay').classList.add('show');
 }
 function closeDetail(){closeBookingEmployeePicker();document.getElementById('detailOverlay').classList.remove('show');selected=null;}
@@ -283,7 +283,7 @@ async function setReservationWorkflow(status){
   }else{
    await loadAll();
    const lineResult=r.lineNotification||{};
-   toast(r.alreadyConfirmed?'รายการนี้ร้านยืนยันแล้ว':('ร้านยืนยันการจองเรียบร้อย'+(lineResult.ok?' · แจ้ง LINE ลูกค้าแล้ว':' · '+(lineResult.message||'ยังไม่ได้แจ้ง LINE'))),!lineResult.ok && !r.alreadyConfirmed);
+   toast(action+'เรียบร้อย'+(lineResult.ok?' · ส่ง LINE ลูกค้าแล้ว':' · '+(lineResult.message||'ยังไม่ได้ส่ง LINE')),!lineResult.ok);
    openDetail(reservationId);
   }
  }catch(e){
@@ -346,7 +346,7 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function escAttr(v){return esc(v).replace(/`/g,'&#96;');}
 function toast(msg,error=false){const t=document.getElementById('toast');t.textContent=msg;t.classList.remove('hidden','error');if(error)t.classList.add('error');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.add('hidden'),3200);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('bookingBedPickerOverlay').classList.contains('show'))closeBookingBedPicker();else if(document.getElementById('bookingEmployeePickerOverlay').classList.contains('show'))closeBookingEmployeePicker();else closeDetail();}if(e.key==='Enter'&&document.activeElement.id==='pin')login();});
-// อัปเดตสถานะการจองและการยืนยันจากร้านอัตโนมัติทุก 15 วินาที
+// อัปเดตสถานะการจองจากฐานข้อมูลอัตโนมัติทุก 15 วินาที
 let bookingAutoRefreshBusy=false;
 async function bookingAutoRefresh(){if(bookingAutoRefreshBusy||document.hidden||!sessionStorage.getItem('nicha_token')||document.getElementById('detailOverlay').classList.contains('show'))return;bookingAutoRefreshBusy=true;try{await loadAll();}finally{bookingAutoRefreshBusy=false;}}
 setInterval(bookingAutoRefresh,15000);
