@@ -1338,6 +1338,7 @@ async function api(action,data={}) {
 
   const response=await fetch(API_URL,{
     method:'POST',
+    cache:'no-store',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({action,token,...data})
   });
@@ -1460,6 +1461,39 @@ function refreshAfterAction() {
 
   return backgroundRefreshPromise;
 }
+
+// ซิงก์หน้าร้านและจัดการเตียงทุก 2 วินาที เพื่อให้เห็นการเปลี่ยนแปลงจากทุกอุปกรณ์
+let liveShopSyncBusy=false;
+let liveShopRenderPending=false;
+async function syncShopLive() {
+  if(liveShopSyncBusy || document.hidden || !sessionStorage.getItem('nicha_token')) return;
+  if(!['dashboard','beds'].includes(currentPage)) return;
+  if(backgroundRefreshPromise) return;
+
+  liveShopSyncBusy=true;
+  const before=JSON.stringify({beds:state.beds,activeBookings:state.activeBookings});
+  try {
+    await refresh(true);
+    const after=JSON.stringify({beds:state.beds,activeBookings:state.activeBookings});
+    if(before!==after) liveShopRenderPending=true;
+
+    const modalOpen=!!document.querySelector('.modal-backdrop:not(.hidden)');
+    if(liveShopRenderPending && !modalOpen) {
+      if(currentPage==='dashboard') renderDashboard();
+      else if(currentPage==='beds') renderBeds();
+      liveShopRenderPending=false;
+    }
+  } catch(err) {
+    console.warn('Live shop sync:',err);
+  } finally {
+    liveShopSyncBusy=false;
+  }
+}
+setInterval(syncShopLive,2000);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) syncShopLive();
+});
+window.addEventListener('focus',syncShopLive);
 
 function showPage(page) {
   currentPage=page;
@@ -2319,7 +2353,8 @@ async function cancelPreparedBooking() {
 
     closePreparedModal();
     notify('ยกเลิกรายการเตรียมไว้แล้ว');
-    refreshAfterAction();
+    // รอโหลดข้อมูลจากฐานข้อมูลจริง แล้ววาดหน้าร้าน/เตียงทันที
+    await refreshAfterAction();
 
   } catch(err) {
     notify(err.message,'error');
