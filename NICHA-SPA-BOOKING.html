@@ -278,10 +278,12 @@ async function setReservationWorkflow(status){
   if(status==='ยกเลิกคิว'){
    closeDetail();
    await loadAll();
-   toast(r.alreadyCancelled?'คิวนี้ถูกยกเลิกแล้ว':'ยกเลิกคิวเรียบร้อย และอัปเดตฐานข้อมูลแล้ว');
+   const lineResult=r.lineNotification||{};
+   toast((r.alreadyCancelled?'คิวนี้ถูกยกเลิกแล้ว':'ยกเลิกคิวเรียบร้อย และอัปเดตฐานข้อมูลแล้ว')+(lineResult.ok?' · ส่ง LINE ลูกค้าแล้ว':' · '+(lineResult.message||'ยังไม่ได้ส่ง LINE')),!lineResult.ok);
   }else{
    await loadAll();
-   toast(action+'เรียบร้อย');
+   const lineResult=r.lineNotification||{};
+   toast(action+'เรียบร้อย'+(lineResult.ok?' · ส่ง LINE ลูกค้าแล้ว':' · '+(lineResult.message||'ยังไม่ได้ส่ง LINE')),!lineResult.ok);
    openDetail(reservationId);
   }
  }catch(e){
