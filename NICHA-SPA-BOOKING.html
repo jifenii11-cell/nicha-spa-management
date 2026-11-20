@@ -62,14 +62,14 @@
   </header>
   <main class="wrap">
     <div class="toolbar">
-      <div><h1>ปฏิทินรายการจอง</h1><p>แสดงคำขอจองที่รอลูกค้ายืนยัน และรายการที่ยืนยันแล้วเพื่อให้ร้านจัดเตรียม</p></div>
+      <div><h1>ปฏิทินรายการจอง</h1><p>แสดงรายการจองที่รอร้านยืนยัน และรายการที่ยืนยันแล้วเพื่อให้ร้านจัดเตรียม</p></div>
       <div class="controls">
         <button class="btn btn-light" onclick="goToday()">วันนี้</button>
         <div class="view-switch"><button id="viewMonth" class="active" onclick="setView('month')">เดือน</button><button id="viewWeek" onclick="setView('week')">สัปดาห์</button><button id="viewList" onclick="setView('list')">รายการ</button></div>
       </div>
     </div>
     <div class="stats">
-      <div class="stat"><small>รอลูกค้ายืนยัน/จัดเตรียม</small><strong id="pendingCount">0</strong></div>
+      <div class="stat"><small>รอยืนยันคิว/จัดเตรียม</small><strong id="pendingCount">0</strong></div>
       <div class="stat"><small>จัดเตรียมเข้าหน้าร้านแล้ว</small><strong id="preparedCount">0</strong></div>
       <div class="stat"><small>รายการทั้งหมด</small><strong id="totalCount">0</strong></div>
     </div>
@@ -79,7 +79,7 @@
         <div class="controls"><button class="btn btn-light" onclick="loadAll()">โหลดข้อมูลล่าสุด</button></div>
       </div>
       <div id="calendarContent"></div>
-      <div class="legend"><span><i class="dot" style="background:#c99b38"></i>รอลูกค้ายืนยัน</span><span><i class="dot"></i>ยืนยันแล้ว / รอจัดเตรียม</span><span><i class="dot grey"></i>ส่งเข้าหน้าร้านแล้ว</span></div>
+      <div class="legend"><span><i class="dot" style="background:#c99b38"></i>รอร้านยืนยัน</span><span><i class="dot"></i>ยืนยันแล้ว / รอจัดเตรียม</span><span><i class="dot grey"></i>ส่งเข้าหน้าร้านแล้ว</span></div>
     </section>
   </main>
 </div>
@@ -170,7 +170,7 @@ function eventHtml(r){
  const status=String(r.status||'').trim();
  const awaiting=status==='รอยืนยัน';
  const cls=r.alreadyPrepared?'done':(awaiting?'awaiting':'');
- const tag=r.alreadyPrepared?'ส่งเข้าหน้าร้านแล้ว':(awaiting?'รอลูกค้ายืนยัน':'รอจัดเตรียม');
+ const tag=r.alreadyPrepared?'ส่งเข้าหน้าร้านแล้ว':(awaiting?'รอร้านยืนยัน':'รอจัดเตรียม');
  return `<button class="event ${cls}" onclick="openDetail('${escAttr(r.id)}')"><strong>${esc(parseTime(r.bookingTime))} · ${esc(r.customerName||'ลูกค้า')}</strong><em>${esc(r.serviceName||'ไม่ระบุบริการ')}</em><em>${tag}</em></button>`;
 }
 function renderMonth(){
@@ -223,14 +223,14 @@ function openDetail(id){
  const cancelled=workflow==='ยกเลิกคิว'||sourceStatus==='ยกเลิกแล้ว';
  document.getElementById('workflowState').textContent='สถานะฐานข้อมูล: '+(selected.status||'ไม่ระบุ')+' · สถานะร้าน: '+(cancelled?'ยกเลิกคิว':(effectiveWorkflow||(awaitingCustomer?'รอลูกค้ายืนยัน':'รอยืนยันคิว')))+(already?' · ส่งเข้าหน้าร้านแล้ว':'');
  const confirmBtn=document.getElementById('confirmQueueBtn');
- confirmBtn.disabled=!sourceConfirmed||effectiveWorkflow==='ยืนยันคิว'||cancelled||already;
+ confirmBtn.disabled=(!sourceConfirmed&&!awaitingCustomer)||effectiveWorkflow==='ยืนยันคิว'||cancelled||already;
  confirmBtn.classList.toggle('is-confirmed',sourceConfirmed||effectiveWorkflow==='ยืนยันคิว');
- confirmBtn.textContent=sourceConfirmed?'✓ ฐานข้อมูลยืนยันแล้ว':(awaitingCustomer?'รอลูกค้ายืนยันก่อน':'✓ ยืนยันคิว');
+ confirmBtn.textContent=sourceConfirmed?'✓ ฐานข้อมูลยืนยันแล้ว':(awaitingCustomer?'✓ ยืนยันคิว':'✓ ยืนยันคิว');
  document.getElementById('cancelQueueBtn').disabled=cancelled||selected.bookingStarted===true;
  document.getElementById('cancelQueueBtn').textContent=cancelled?'ยกเลิกคิวแล้ว':'✕ ยกเลิกคิว';
  const canPrepare=sourceConfirmed && !cancelled;
  document.getElementById('prepareBtn').disabled=already||!canPrepare;
- document.getElementById('prepareBtn').textContent=already?'ส่งเข้าหน้าร้านแล้ว':(cancelled?'คิวนี้ถูกยกเลิก':(canPrepare?'ยืนยันและส่งเข้าหน้าร้าน':(awaitingCustomer?'รอลูกค้ายืนยันก่อน':'รอการยืนยันจากฐานข้อมูล')));
+ document.getElementById('prepareBtn').textContent=already?'ส่งเข้าหน้าร้านแล้ว':(cancelled?'คิวนี้ถูกยกเลิก':(canPrepare?'ยืนยันและส่งเข้าหน้าร้าน':(awaitingCustomer?'กดยืนยันคิวก่อน':'รอการยืนยันจากฐานข้อมูล')));
  document.getElementById('detailOverlay').classList.add('show');
 }
 function closeDetail(){closeBookingEmployeePicker();document.getElementById('detailOverlay').classList.remove('show');selected=null;}
