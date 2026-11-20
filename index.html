@@ -955,6 +955,13 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
 }
 .employee-picker-item.available { cursor:pointer; }
 .employee-picker-item.available:hover { border-color:var(--gold); background:#fffdf6; }
+.employee-picker-item.chosen { border:2px solid #23865a; background:#edf7ef; color:#17613b; box-shadow:0 0 0 2px #23865a18; }
+.extra-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.extra-staff-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;max-height:42vh;overflow:auto;padding:2px; }
+.extra-staff-card { min-height:76px;border:1px solid var(--border);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 4px;color:var(--text); }
+.extra-staff-card.selected { border:2px solid #23865a;background:#edf7ef;color:#17613b; }
+.extra-staff-card.busy { opacity:.45; }
+@media(max-width:650px){.extra-form-grid{grid-template-columns:1fr}.extra-staff-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.extra-staff-card{font-size:11px;min-height:68px}}
 .employee-picker-item.unavailable {
   background:#16a34a; color:#fff; border-color:#15803d;
   cursor:not-allowed; opacity:1;
@@ -1240,6 +1247,28 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
       <button class="btn btn-primary" onclick="startPreparedBooking()">เริ่มนวด</button>
       <button class="btn btn-danger" onclick="cancelPreparedBooking()">ยกเลิกรายการ</button>
       <button class="btn btn-light" onclick="closePreparedModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div id="activeBookingModal" class="modal-backdrop hidden" style="z-index:65">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-head"><div><h2 style="margin:0;color:var(--green)">จัดการรายการนวด</h2><small id="activeBookingSubtitle" style="color:var(--muted)"></small></div><button class="close" onclick="closeActiveBookingModal()">×</button></div>
+    <div id="activeBookingSummary" class="panel" style="margin-bottom:14px"></div>
+    <div class="form-actions" style="justify-content:flex-start;margin:0 0 14px">
+      <button class="btn btn-gold" onclick="showExtraForm('extend')">＋ ต่อเวลา</button>
+      <button class="btn btn-light" onclick="showExtraForm('service')">＋ เพิ่มคอร์ส</button>
+      <button class="btn btn-primary" onclick="checkoutActiveBooking()">คิดเงิน / จบงาน</button>
+    </div>
+    <div id="extraForm" class="panel hidden" style="margin-top:12px">
+      <h3 id="extraFormTitle" style="margin:0 0 12px;color:var(--green)"></h3>
+      <div id="extraExtendFields" class="extra-form-grid hidden">
+        <div class="field"><label>ระยะเวลาที่ต่อ (นาที)</label><select id="extraMinutes"><option value="30">30 นาที</option><option value="60">60 นาที</option><option value="90">90 นาที</option><option value="120">120 นาที</option></select></div>
+        <div class="field"><label>ราคาต่อเวลา (บาท)</label><input id="extraPrice" type="number" min="0" step="1" placeholder="กรอกราคาที่ต้องการ"></div>
+      </div>
+      <div id="extraServiceFields" class="field hidden"><label>เลือกคอร์สที่เพิ่ม</label><select id="extraServiceSelect"></select><small style="color:var(--muted)">เวลาและราคาจะดึงจากรายการบริการ</small></div>
+      <div class="field" style="margin-top:12px"><label>เลือกหมอนวด (แถวละ 4 ช่อง)</label><div id="extraStaffGrid" class="extra-staff-grid"></div><small id="extraStaffHint" style="color:var(--muted)">เลือกหมอนวดที่ว่าง หรือเลือกหมอนวดเดิมได้</small></div>
+      <div class="form-actions"><button class="btn btn-light" onclick="hideExtraForm()">ยกเลิก</button><button id="saveExtraBtn" class="btn btn-primary" onclick="saveBookingExtra()">บันทึกรายการ</button></div>
     </div>
   </div>
 </div>
@@ -1965,7 +1994,7 @@ function clickBed(id) {
   }
 
   if(bed.status==='กำลังนวด') {
-    finishBookingForBed(bed);
+    openActiveBookingForBed(bed);
     return;
   }
 
@@ -2133,8 +2162,9 @@ function getBusyEmployeeIds() {
   const busy=new Set();
   (state.activeBookings||[]).forEach(booking=>{
     const status=String(booking.status||'').trim();
-    if(booking.employeeId && status==='กำลังนวด') {
-      busy.add(String(booking.employeeId));
+    if(status==='กำลังนวด') {
+      if(booking.employeeId) busy.add(String(booking.employeeId));
+      (booking.extras||[]).forEach(item=>{if(item.employeeId)busy.add(String(item.employeeId));});
     }
   });
   return busy;
@@ -2345,6 +2375,70 @@ async function startBooking() {
   }
 }
 
+/* ACTIVE BOOKING: EXTENSION AND ADD-ON SERVICES */
+let activeBookingForExtra=null;
+let activeBookingBed=null;
+let activeExtraMode='';
+let activeExtraEmployeeId='';
+
+function openActiveBookingForBed(bed) {
+  const booking=(state.activeBookings||[]).find(x=>String(x.bedId)===String(bed.id)&&x.status==='กำลังนวด');
+  if(!booking){notify('ไม่พบรายการนวดของเตียงนี้ กรุณารีเฟรชข้อมูล','error');return;}
+  activeBookingForExtra=booking; activeBookingBed=bed;
+  document.getElementById('activeBookingSubtitle').textContent=`${bed.name} · ${booking.customerName||'ลูกค้าทั่วไป'}`;
+  renderActiveBookingSummary();
+  hideExtraForm();
+  document.getElementById('activeBookingModal').classList.remove('hidden');
+}
+function renderActiveBookingSummary(){
+  const b=activeBookingForExtra;if(!b)return;
+  document.getElementById('activeBookingSummary').innerHTML=`<b>${escapeHTML(b.serviceName||'บริการ')}</b> · ${Math.max(0,Number(b.minutes||0)-(b.extras||[]).reduce((sum,x)=>sum+Number(x.minutes||0),0))} นาที<br>หมอนวดหลัก: ${escapeHTML(b.employeeName||'-')}<br>เวลารวมหลังเพิ่มรายการ: <b>${Number(b.minutes||0)} นาที</b><br>ยอดรวมปัจจุบัน: <b>${money(Number(b.price||0)+(b.extras||[]).reduce((sum,x)=>sum+Number(x.price||0),0))}</b><div style="margin-top:6px;color:var(--muted);font-size:12px">${(b.extras||[]).map(x=>`${escapeHTML(x.description||x.serviceName||'รายการเพิ่ม')} · ${Number(x.minutes||0)} นาที · ${money(x.price)} · ${escapeHTML(x.employeeName||'')}`).join('<br>')}</div>`;
+}
+function closeActiveBookingModal(){document.getElementById('activeBookingModal').classList.add('hidden');hideExtraForm();activeBookingForExtra=null;activeBookingBed=null;}
+function showExtraForm(mode){
+  if(!activeBookingForExtra)return; activeExtraMode=mode;activeExtraEmployeeId='';
+  const box=document.getElementById('extraForm');box.classList.remove('hidden');
+  const extend=mode==='extend';
+  document.getElementById('extraFormTitle').textContent=extend?'ตั้งค่าการต่อเวลา':'เลือกคอร์สเพิ่มเติม';
+  document.getElementById('extraExtendFields').classList.toggle('hidden',!extend);
+  document.getElementById('extraServiceFields').classList.toggle('hidden',extend);
+  if(!extend){const services=(state.services||[]).filter(x=>active(x.active));document.getElementById('extraServiceSelect').innerHTML=buildGroupedServiceOptions(services);}
+  renderExtraStaffGrid();
+}
+function hideExtraForm(){document.getElementById('extraForm').classList.add('hidden');activeExtraMode='';activeExtraEmployeeId='';}
+function renderExtraStaffGrid(){
+  const list=document.getElementById('extraStaffGrid');if(!list)return;
+  const busy=getBusyEmployeeIds();const current=String(activeBookingForExtra?.employeeId||'');
+  const employees=(state.employees||[]).filter(x=>active(x.active));
+  list.innerHTML=employees.map(e=>{
+    const id=String(e.id);const isCurrent=id===current;const unavailable=busy.has(id)&&!isCurrent;
+    return `<button type="button" class="extra-staff-card ${unavailable?'busy':''} ${activeExtraEmployeeId===id?'selected':''}" ${unavailable?'disabled':''} onclick="selectExtraEmployee('${escapeHTML(id)}')"><span>♙</span><b>${escapeHTML(e.name||'ไม่ระบุชื่อ')}</b><small>${unavailable?'ไม่ว่าง':isCurrent?'หมอนวดเดิม':'ว่าง'}</small></button>`;
+  }).join('')||'<div class="member-picker-empty">ยังไม่มีหมอนวดที่เปิดใช้งาน</div>';
+  if(!activeExtraEmployeeId && current) activeExtraEmployeeId=current;
+  if(activeExtraEmployeeId) {const el=[...list.querySelectorAll('button')].find(x=>x.getAttribute('onclick')?.includes(`'${activeExtraEmployeeId}'`));if(el)el.classList.add('selected');}
+}
+function selectExtraEmployee(id){activeExtraEmployeeId=String(id);renderExtraStaffGrid();}
+async function saveBookingExtra(){
+  if(!activeBookingForExtra)return;
+  if(!activeExtraEmployeeId){notify('กรุณาเลือกหมอนวด','error');return;}
+  let payload={bookingId:activeBookingForExtra.id,kind:activeExtraMode,employeeId:activeExtraEmployeeId};
+  if(activeExtraMode==='extend'){
+    payload.minutes=Number(document.getElementById('extraMinutes').value||0);
+    const priceText=document.getElementById('extraPrice').value.trim();
+    if(priceText===''){notify('กรุณากำหนดราคาต่อเวลา','error');return;}
+    payload.price=Number(priceText);
+    if(payload.price<0||!Number.isFinite(payload.price)){notify('กรุณากรอกราคาต่อเวลาให้ถูกต้อง','error');return;}
+  }else{payload.serviceId=document.getElementById('extraServiceSelect').value;if(!payload.serviceId){notify('กรุณาเลือกคอร์ส','error');return;}}
+  const btn=document.getElementById('saveExtraBtn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
+  const savedMode=activeExtraMode;
+  try{
+    const r=await api('addBookingExtra',{extra:payload});if(!r.ok)throw new Error(r.error||'บันทึกรายการเพิ่มไม่สำเร็จ');
+    activeBookingForExtra=r.booking;state.activeBookings=(state.activeBookings||[]).map(x=>String(x.id)===String(r.booking.id)?r.booking:x);
+    renderActiveBookingSummary();hideExtraForm();await refresh(true);notify(savedMode==='extend'?'ต่อเวลาเรียบร้อยแล้ว':'เพิ่มคอร์สเรียบร้อยแล้ว');
+  }catch(e){notify(e.message,'error');}finally{btn.disabled=false;btn.textContent='บันทึกรายการ';}
+}
+function checkoutActiveBooking(){const b=activeBookingForExtra,bed=activeBookingBed;if(!b||!bed)return;closeActiveBookingModal();finishBookingForBed(bed);}
+
 /* CHECKOUT */
 
 function finishBookingForBed(bed) {
@@ -2361,16 +2455,19 @@ function finishBookingForBed(bed) {
     checkoutBooking=booking;
     checkoutBed=bed;
 
-    const gross=Number(booking.price||0);
+    const extras=Array.isArray(booking.extras)?booking.extras:[];
+    const extraGross=extras.reduce((sum,x)=>sum+Number(x.price||0),0);
+    const gross=Number(booking.price||0)+extraGross;
     const discount=Number(booking.discount||0);
-    const net=Number(booking.net||(gross-discount));
+    const net=Number(booking.net||(Number(booking.price||0)-discount))+extraGross;
+    checkoutBooking=Object.assign({},booking,{grossTotal:gross,net:net,extras:extras});
 
     const staff=booking.staffAmount!=='' && booking.staffAmount!==undefined && booking.staffAmount!==null
       ? Number(booking.staffAmount)
-      : Math.min(net,net*Number(booking.shareStaffPct||0)/100);
-    const shop=booking.shopAmount!=='' && booking.shopAmount!==undefined && booking.shopAmount!==null
-      ? Number(booking.shopAmount)
-      : Math.max(0,net-staff);
+      : Math.min(Number(booking.net||0),Number(booking.net||0)*Number(booking.shareStaffPct||0)/100);
+    const extraStaff=extras.reduce((sum,x)=>sum+Number(x.staffAmount||0),0);
+    const staffTotal=staff+extraStaff;
+    const shop=Math.max(0,net-staffTotal);
     const owner=0;
 
     document.getElementById('checkoutSubtitle').textContent=
@@ -2380,13 +2477,14 @@ function finishBookingForBed(bed) {
       <div class="checkout-lines">
         <div class="checkout-line">
           <span>บริการ</span>
-          <b>${escapeHTML(booking.serviceName||'-')} · ${Number(booking.minutes||0)} นาที</b>
+          <b>${escapeHTML(booking.serviceName||'-')} · ${Math.max(0,Number(booking.minutes||0)-extras.reduce((sum,x)=>sum+Number(x.minutes||0),0))} นาที</b>
         </div>
         <div class="checkout-line">
           <span>พนักงานนวด</span>
           <b>${escapeHTML(booking.employeeName||(state.employees.find(x=>String(x.id)===String(booking.employeeId))||{}).name||'-')}</b>
         </div>
-        <div class="checkout-line"><span>ราคาบริการ</span><b>${money(gross)}</b></div>
+        <div class="checkout-line"><span>ราคาบริการหลัก</span><b>${money(Number(booking.price||0))}</b></div>
+        ${extras.map(x=>`<div class="checkout-line"><span>${escapeHTML(x.description||x.serviceName||'รายการเพิ่ม')} · ${Number(x.minutes||0)} นาที (${escapeHTML(x.employeeName||'-')})</span><b>${money(x.price)}</b></div>`).join('')}
         <div class="checkout-line"><span>ส่วนลด</span><b>− ${money(discount)}</b></div>
       </div>
 
@@ -2405,7 +2503,7 @@ function finishBookingForBed(bed) {
         </thead>
         <tbody>
           <tr><td>ร้าน</td><td>ยอดคงเหลือ</td><td style="text-align:right">${money(shop)}</td></tr>
-          <tr><td>พนักงานนวด</td><td>ค่ามือเท่ากันทุกคน</td><td style="text-align:right">${money(staff)}</td></tr>
+          <tr><td>หมอนวดทุกคน</td><td>แยกตามผู้ให้บริการ</td><td style="text-align:right">${money(staffTotal)}</td></tr>
         </tbody>
       </table>
     `;
