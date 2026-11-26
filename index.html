@@ -1317,6 +1317,7 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
     <div class="form-actions" style="justify-content:flex-start;margin:0 0 14px">
       <button class="btn btn-gold" onclick="showExtraForm('extend')">＋ ต่อเวลา</button>
       <button class="btn btn-light" onclick="showExtraForm('service')">＋ เพิ่มคอร์ส</button>
+      <button class="btn btn-gold" onclick="showDiscountForm()">％ ใส่ส่วนลด</button>
       <button class="btn btn-primary" onclick="checkoutActiveBooking()">คิดเงิน / จบงาน</button>
     </div>
     <div id="extraForm" class="modal-backdrop hidden" style="z-index:85">
@@ -1340,6 +1341,31 @@ td { padding:13px;border-bottom:1px solid var(--border);font-size:13px; }
         <div id="extraServiceFields" class="field hidden"><label>เลือกคอร์สที่เพิ่ม</label><select id="extraServiceSelect"></select><small style="color:var(--muted)">เวลาและราคาจะดึงจากรายการบริการ</small></div>
         <div class="field" style="margin-top:14px"><label>เลือกหมอนวด (แถวละ 4 ช่อง)</label><div id="extraStaffGrid" class="extra-staff-grid"></div><small id="extraStaffHint" style="color:var(--muted)">เลือกหมอนวดที่ว่าง หรือเลือกหมอนวดเดิมได้</small></div>
         <div class="form-actions"><button class="btn btn-light" type="button" onclick="hideExtraForm()">ยกเลิก</button><button id="saveExtraBtn" class="btn btn-primary" type="button" onclick="saveBookingExtra()">ยืนยันและบันทึก</button></div>
+      </div>
+    </div>
+    <div id="discountForm" class="modal-backdrop hidden" style="z-index:86">
+      <div class="modal" style="max-width:460px">
+        <div class="modal-head">
+          <h2 style="margin:0;color:var(--green)">ใส่ส่วนลดให้ลูกค้า</h2>
+          <button class="close" type="button" onclick="hideDiscountForm()">×</button>
+        </div>
+        <div class="panel" style="margin:10px 0 14px">ยอดบริการรวม <b id="discountGrossText">0.00 ฿</b><br>ส่วนลดปัจจุบัน <b id="discountCurrentText">0.00 ฿</b></div>
+        <div class="field">
+          <label for="discountType">รูปแบบส่วนลด</label>
+          <select id="discountType" onchange="updateDiscountPreview()">
+            <option value="amount">ลดเป็นจำนวนเงิน (บาท)</option>
+            <option value="percent">ลดเป็นเปอร์เซ็นต์ (%)</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label for="discountInput">จำนวนส่วนลด</label>
+          <input id="discountInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="กรอกส่วนลด" oninput="updateDiscountPreview()">
+          <small id="discountPreviewText" style="color:var(--muted)">ยอดสุทธิหลังหักส่วนลด 0.00 ฿</small>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-light" type="button" onclick="resetBookingDiscount()">ยกเลิกส่วนลด</button>
+          <button class="btn btn-primary" id="saveDiscountBtn" type="button" onclick="saveBookingDiscount()">บันทึกส่วนลด</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2776,9 +2802,12 @@ function openActiveBookingForBed(bed) {
 }
 function renderActiveBookingSummary(){
   const b=activeBookingForExtra;if(!b)return;
-  document.getElementById('activeBookingSummary').innerHTML=`<b>${escapeHTML(b.serviceName||'บริการ')}</b> · ${Math.max(0,Number(b.minutes||0)-(b.extras||[]).reduce((sum,x)=>sum+Number(x.minutes||0),0))} นาที<br>หมอนวดหลัก: ${escapeHTML(b.employeeName||'-')}<br>เวลารวมหลังเพิ่มรายการ: <b>${Number(b.minutes||0)} นาที</b><br>ยอดรวมปัจจุบัน: <b>${money(Number(b.price||0)+(b.extras||[]).reduce((sum,x)=>sum+Number(x.price||0),0))}</b><div style="margin-top:6px;color:var(--muted);font-size:12px">${(b.extras||[]).map(x=>`${escapeHTML(x.description||x.serviceName||'รายการเพิ่ม')} · ${Number(x.minutes||0)} นาที · ${money(x.price)} · ${escapeHTML(x.employeeName||'')}`).join('<br>')}</div>`;
+  const gross=Number(b.price||0)+(b.extras||[]).reduce((sum,x)=>sum+Number(x.price||0),0);
+  const discount=Number(b.discount||0);
+  const net=Math.max(0,gross-discount);
+  document.getElementById('activeBookingSummary').innerHTML=`<b>${escapeHTML(b.serviceName||'บริการ')}</b> · ${Math.max(0,Number(b.minutes||0)-(b.extras||[]).reduce((sum,x)=>sum+Number(x.minutes||0),0))} นาที<br>หมอนวดหลัก: ${escapeHTML(b.employeeName||'-')}<br>เวลารวมหลังเพิ่มรายการ: <b>${Number(b.minutes||0)} นาที</b><br>ยอดบริการรวม: <b>${money(gross)}</b><br>ส่วนลด: <b style="color:var(--red)">− ${money(discount)}</b><br>ยอดสุทธิ: <b style="color:var(--green)">${money(net)}</b><div style="margin-top:6px;color:var(--muted);font-size:12px">${(b.extras||[]).map(x=>`${escapeHTML(x.description||x.serviceName||'รายการเพิ่ม')} · ${Number(x.minutes||0)} นาที · ${money(x.price)} · ${escapeHTML(x.employeeName||'')}`).join('<br>')}</div>`;
 }
-function closeActiveBookingModal(){document.getElementById('activeBookingModal').classList.add('hidden');hideExtraForm();activeBookingForExtra=null;activeBookingBed=null;}
+function closeActiveBookingModal(){document.getElementById('activeBookingModal').classList.add('hidden');hideExtraForm();hideDiscountForm();activeBookingForExtra=null;activeBookingBed=null;}
 function showExtraForm(mode){
   if(!activeBookingForExtra)return; activeExtraMode=mode;activeExtraEmployeeId='';
   const box=document.getElementById('extraForm');box.classList.remove('hidden');
@@ -2863,6 +2892,52 @@ async function saveBookingExtra(){
     renderActiveBookingSummary();hideExtraForm();await refresh(true);notify(savedMode==='extend'?'ต่อเวลาเรียบร้อยแล้ว':'เพิ่มคอร์สเรียบร้อยแล้ว');
   }catch(e){notify(e.message,'error');}finally{btn.disabled=false;btn.textContent='บันทึกรายการ';}
 }
+function getActiveBookingGrossForDiscount(){const b=activeBookingForExtra;if(!b)return 0;return Number(b.price||0)+(b.extras||[]).reduce((sum,x)=>sum+Number(x.price||0),0);}
+function showDiscountForm(){
+  if(!activeBookingForExtra)return;
+  const gross=getActiveBookingGrossForDiscount();
+  document.getElementById('discountGrossText').textContent=money(gross);
+  document.getElementById('discountCurrentText').textContent=money(Number(activeBookingForExtra.discount||0));
+  document.getElementById('discountType').value='amount';
+  document.getElementById('discountInput').value=Number(activeBookingForExtra.discount||0)||'';
+  updateDiscountPreview();
+  document.getElementById('discountForm').classList.remove('hidden');
+}
+function hideDiscountForm(){document.getElementById('discountForm').classList.add('hidden');}
+function getDiscountInputAmount(){
+  const gross=getActiveBookingGrossForDiscount();
+  const value=Number(document.getElementById('discountInput').value||0);
+  if(!Number.isFinite(value)||value<0)throw new Error('กรุณากรอกส่วนลดให้ถูกต้อง');
+  const amount=document.getElementById('discountType').value==='percent'?gross*value/100:value;
+  if(document.getElementById('discountType').value==='percent'&&value>100)throw new Error('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100%');
+  if(amount>gross)throw new Error('ส่วนลดต้องไม่เกินยอดบริการรวม '+money(gross));
+  return Math.round((amount+Number.EPSILON)*100)/100;
+}
+function updateDiscountPreview(){
+  const text=document.getElementById('discountPreviewText');if(!text)return;
+  try{const amount=getDiscountInputAmount();const gross=getActiveBookingGrossForDiscount();text.textContent='ส่วนลด '+money(amount)+' · ยอดสุทธิหลังหักส่วนลด '+money(Math.max(0,gross-amount));text.style.color='var(--green)';}
+  catch(e){text.textContent=e.message;text.style.color='var(--red)';}
+}
+async function saveBookingDiscount(){
+  if(!activeBookingForExtra)return;
+  let amount;try{amount=getDiscountInputAmount();}catch(e){notify(e.message,'error');return;}
+  const btn=document.getElementById('saveDiscountBtn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
+  try{
+    const r=await api('setBookingDiscount',{bookingId:activeBookingForExtra.id,discount:amount});
+    if(!r||!r.ok)throw new Error(r?.error||'บันทึกส่วนลดไม่สำเร็จ');
+    activeBookingForExtra=r.booking;
+    state.activeBookings=(state.activeBookings||[]).map(x=>String(x.id)===String(r.booking.id)?r.booking:x);
+    renderActiveBookingSummary();hideDiscountForm();await refresh(true);notify('บันทึกส่วนลด '+money(amount)+' แล้ว');
+  }catch(e){notify(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='บันทึกส่วนลด';}
+}
+async function resetBookingDiscount(){
+  if(!activeBookingForExtra)return;
+  document.getElementById('discountInput').value='0';
+  document.getElementById('discountType').value='amount';
+  updateDiscountPreview();
+  await saveBookingDiscount();
+}
 function checkoutActiveBooking(){const b=activeBookingForExtra,bed=activeBookingBed;if(!b||!bed)return;closeActiveBookingModal();finishBookingForBed(bed);}
 
 /* CHECKOUT */
@@ -2885,7 +2960,7 @@ function finishBookingForBed(bed) {
     const extraGross=extras.reduce((sum,x)=>sum+Number(x.price||0),0);
     const gross=Number(booking.price||0)+extraGross;
     const discount=Number(booking.discount||0);
-    const net=Number(booking.net||(Number(booking.price||0)-discount))+extraGross;
+    const net=Math.max(0,gross-discount);
     checkoutBooking=Object.assign({},booking,{grossTotal:gross,net:net,extras:extras});
 
     const staff=booking.staffAmount!=='' && booking.staffAmount!==undefined && booking.staffAmount!==null
