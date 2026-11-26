@@ -1692,6 +1692,11 @@ function drawMemberDirectory() {
     const points=Number(m.points||0);
     const lifetime=Number(m.lifetimePoints||0);
     const visits=Number(m.visitCount||0);
+    const latestServiceDate=String(m.latestServiceDate||'').trim();
+    const latestServiceName=String(m.latestServiceName||'').trim();
+    const latestServiceAmount=Number(m.latestServiceAmount||0);
+    const latestServicePoints=Number(m.latestServicePoints||0);
+    const hasLatestService=!!(latestServiceDate||latestServiceName);
     const levelOptions=['Bronze','Silver','Gold','Platinum','VIP'];
     if(level && !levelOptions.includes(level)) levelOptions.unshift(level);
     const levelSelectOptions=levelOptions.map(v=>`<option value="${escapeHTML(v)}" ${level===v?'selected':''}>${escapeHTML(v)}</option>`).join('');
@@ -1721,6 +1726,16 @@ function drawMemberDirectory() {
           <div style="background:#f1f7f1;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">แต้มคงเหลือ</div><strong style="color:var(--green)">${points.toLocaleString('th-TH')} แต้ม</strong></div>
           <div style="background:#f1f7f1;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">แต้มสะสม</div><strong style="color:var(--green)">${lifetime.toLocaleString('th-TH')} แต้ม</strong></div>
           <div style="background:#f5f3e9;border-radius:11px;padding:10px"><div style="font-size:10px;color:var(--muted)">จำนวนครั้งสะสม</div><strong style="color:#98732b">${visits.toLocaleString('th-TH')} ครั้ง</strong></div>
+          <div style="grid-column:1/-1;background:#fffaf0;border:1px solid #e6d5b4;border-radius:12px;padding:12px">
+            <div style="font-size:11px;color:#98732b;font-weight:700;margin-bottom:7px">บริการครั้งล่าสุด</div>
+            ${hasLatestService ? `
+              <div style="font-size:15px;font-weight:700;color:var(--green);overflow-wrap:anywhere">${escapeHTML(latestServiceName||'ไม่ระบุบริการ')}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--muted)">
+                <span>วันที่: ${escapeHTML(latestServiceDate||'-')}</span>
+                <span>ยอดใช้จ่าย: ${latestServiceAmount.toLocaleString('th-TH')} บาท</span>
+                <span>แต้มที่ได้รับ: ${latestServicePoints.toLocaleString('th-TH')} แต้ม</span>
+              </div>` : `<div style="font-size:13px;color:var(--muted)">ยังไม่พบประวัติการใช้บริการใน Transactions</div>`}
+          </div>
           <div style="grid-column:1/-1"><button class="btn btn-light" onclick="editMember(${index})" ${m.lineUserId?'':'disabled title="สมาชิกนี้ไม่มี LINE User ID จึงไม่สามารถระบุแถวเพื่อบันทึกได้"'}>✎ แก้ไขข้อมูลสมาชิก</button></div>
         </div>`}
     </div>`;
