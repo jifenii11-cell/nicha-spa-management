@@ -105,6 +105,7 @@ button{cursor:pointer}
 .gold{background:var(--gold);color:#172f25}
 .light{background:#eef2ed;color:var(--g)}
 .danger{background:#faece9;color:var(--red)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
 
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
 .tab{
@@ -469,20 +470,24 @@ let token=sessionStorage.getItem('nicha_electricity_token')||'';
 
 const $=id=>document.getElementById(id);
 
-const money=n=>'฿'+Number(n||0).toLocaleString('th-TH',{
-  minimumFractionDigits:2,
-  maximumFractionDigits:2
-});
+const money=n=>{
+  if(n===null||n===undefined||n==='')return '—';
 
-const num=n=>Number(n||0).toLocaleString('th-TH',{
-  maximumFractionDigits:2
-});
+  return '฿'+Number(n||0).toLocaleString('th-TH',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+};
 
-/*
- * ช่วยอ่านค่าจาก API ได้หลายชื่อ
- * Backend บางเวอร์ชันใช้ amount
- * HTML เวอร์ชันเดิมใช้ totalAmount
- */
+const num=n=>{
+  if(n===null||n===undefined||n==='')return '—';
+
+  return Number(n||0).toLocaleString('th-TH',{
+    maximumFractionDigits:2
+  });
+};
+
+/* อ่านค่าจาก API ได้หลายชื่อ */
 function getMeterValue(x){
   return x?.meterValue ?? x?.meter ?? x?.meterReading ?? '';
 }
@@ -495,38 +500,80 @@ function getUnitPrice(x){
   return x?.unitPrice ?? x?.pricePerUnit ?? '';
 }
 
+/* คืน null เมื่อยังไม่มีข้อมูลจำนวนหน่วยหรือยอดเงิน */
 function getReadingAmount(x){
   const amount=x?.amount ?? x?.totalAmount ?? x?.electricityAmount;
 
   if(amount!==undefined && amount!==null && amount!==''){
-    return Number(amount)||0;
+    const n=Number(amount);
+    return Number.isFinite(n)?n:null;
   }
 
-  const units=Number(getUnitsUsed(x));
-  const price=Number(getUnitPrice(x));
+  const unitsValue=getUnitsUsed(x);
+  const priceValue=getUnitPrice(x);
 
-  if(Number.isFinite(units)&&Number.isFinite(price)){
-    return units*price;
+  if(
+    unitsValue===''||unitsValue===null||unitsValue===undefined||
+    priceValue===''||priceValue===null||priceValue===undefined
+  ){
+    return null;
   }
 
-  return 0;
+  const units=Number(unitsValue);
+  const price=Number(priceValue);
+
+  if(!Number.isFinite(units)||!Number.isFinite(price)){
+    return null;
+  }
+
+  return units*price;
 }
 
 function getReadingDate(x){
   return String(x?.readingDate ?? x?.date ?? x?.recordDate ?? '').slice(0,10);
 }
 
+/*
+ * API helper
+ * รองรับข้อมูลที่ส่งตรง หรืออยู่ใน data/result
+ */
 async function api(action,data={}){
-  const r=await fetch(API_URL,{
+  const response=await fetch(API_URL,{
     method:'POST',
     cache:'no-store',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({action,token,...data})
+    headers:{
+      'Content-Type':'text/plain;charset=utf-8'
+    },
+    body:JSON.stringify({
+      action,
+      token,
+      ...data
+    })
   });
 
-  if(!r.ok)throw Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+r.status);
+  const text=await response.text();
 
-  return r.json();
+  if(!response.ok){
+    throw Error('เชื่อมต่อระบบไม่สำเร็จ HTTP '+response.status);
+  }
+
+  let result;
+
+  try{
+    result=JSON.parse(text);
+  }catch(e){
+    throw Error('API ไม่ได้ส่งข้อมูล JSON กลับมา กรุณาตรวจสอบ Web App');
+  }
+
+  if(result&&result.data&&typeof result.data==='object'){
+    result=Object.assign({},result,result.data);
+  }
+
+  if(result&&result.result&&typeof result.result==='object'){
+    result=Object.assign({},result,result.result);
+  }
+
+  return result;
 }
 
 async function login(){
@@ -544,9 +591,16 @@ async function login(){
   try{
     const r=await api('login',{pin});
 
-    if(!r.ok)throw Error(r.error||'เข้าสู่ระบบไม่สำเร็จ');
+    if(r.ok===false||r.success===false){
+      throw Error(r.error||r.message||'เข้าสู่ระบบไม่สำเร็จ');
+    }
 
-    token=r.token;
+    token=r.token||r.sessionToken||'';
+
+    if(!token){
+      throw Error('เข้าสู่ระบบสำเร็จแต่ไม่พบ Token กรุณาตรวจสอบ API login');
+    }
+
     sessionStorage.setItem('nicha_electricity_token',token);
 
     $('loginScreen').classList.add('hidden');
@@ -567,7 +621,9 @@ async function refreshData(){
   try{
     const r=await api('getElectricityData');
 
-    if(!r.ok)throw Error(r.error||'โหลดข้อมูลไม่สำเร็จ');
+    if(r.ok===false||r.success===false){
+      throw Error(r.error||r.message||'โหลดข้อมูลไม่สำเร็จ');
+    }
 
     readings=Array.isArray(r.readings)?r.readings:[];
     bills=Array.isArray(r.bills)?r.bills:[];
@@ -577,8 +633,13 @@ async function refreshData(){
 
     $('readingError').textContent='';
 
+    toast('โหลดข้อมูลสำเร็จ: ประวัติมิเตอร์ '+readings.length+' รายการ');
+
   }catch(e){
-    toast(e.message);
+    $('readingError').textContent=e.message;
+    toast('โหลดข้อมูลไม่ได้: '+e.message);
+
+    console.error('Electricity API error:',e);
 
     if(/session|เข้าสู่ระบบ|token/i.test(e.message)){
       logout(false);
@@ -603,7 +664,7 @@ function latestPrevious(date){
     .filter(x=>getReadingDate(x)<date)
     .sort((a,b)=>getReadingDate(b).localeCompare(getReadingDate(a)))[0];
 
-  return previous ? Number(getMeterValue(previous)||0) : null;
+  return previous?Number(getMeterValue(previous)||0):null;
 }
 
 function preview(){
@@ -646,6 +707,26 @@ async function saveReading(){
     return;
   }
 
+  const meter=Number(reading.meterValue);
+  const price=Number(reading.unitPrice);
+
+  if(!Number.isFinite(meter)||meter<0){
+    $('readingError').textContent='เลขมิเตอร์ไม่ถูกต้อง';
+    return;
+  }
+
+  if(!Number.isFinite(price)||price<0){
+    $('readingError').textContent='ราคาต่อหน่วยไม่ถูกต้อง';
+    return;
+  }
+
+  const previous=latestPrevious(reading.readingDate);
+
+  if(previous!==null&&meter<previous){
+    $('readingError').textContent='เลขมิเตอร์ต้องไม่น้อยกว่าเลขมิเตอร์ครั้งก่อน';
+    return;
+  }
+
   const b=$('saveReadingBtn');
   b.disabled=true;
   b.textContent='กำลังบันทึก...';
@@ -653,7 +734,9 @@ async function saveReading(){
   try{
     const r=await api('saveElectricityReading',{reading});
 
-    if(!r.ok)throw Error(r.error||'บันทึกไม่สำเร็จ');
+    if(r.ok===false||r.success===false){
+      throw Error(r.error||r.message||'บันทึกไม่สำเร็จ');
+    }
 
     toast('บันทึกเลขมิเตอร์เรียบร้อย');
     clearReadingForm();
@@ -696,7 +779,9 @@ async function saveBill(){
 
     const r=await api('saveElectricityBill',{bill});
 
-    if(!r.ok)throw Error(r.error||'บันทึกบิลไม่สำเร็จ');
+    if(r.ok===false||r.success===false){
+      throw Error(r.error||r.message||'บันทึกบิลไม่สำเร็จ');
+    }
 
     toast('บันทึกบิลค่าไฟเรียบร้อย');
     clearBillForm();
@@ -719,10 +804,7 @@ function clearBillForm(){
   $('billNote').value='';
 }
 
-/*
- * แก้ปัญหาประวัติมิเตอร์และผลรวมไม่แสดง
- * ใช้ getReadingAmount() เพื่อรองรับ amount/totalAmount
- */
+/* แสดงประวัติมิเตอร์และบิล */
 function renderAll(){
   const month=$('filterMonth').value;
 
@@ -752,16 +834,18 @@ function renderAll(){
     :'<tr><td colspan="6" class="empty">ยังไม่มีประวัติการอ่านมิเตอร์</td></tr>';
 
   $('billRows').innerHTML=bills.length
-    ?bills.slice().sort((a,b)=>String(b.billMonth||'').localeCompare(String(a.billMonth||''))).map(x=>`
-      <tr>
-        <td>${esc(x.billMonth||'—')}</td>
-        <td>${num(x.unitsUsed)}</td>
-        <td>${money(x.amount)}</td>
-        <td>${esc(x.dueDate||'—')}</td>
-        <td>${esc(x.paidDate||'—')}</td>
-        <td>${esc(x.status||'รอชำระ')}</td>
-      </tr>
-    `).join('')
+    ?bills.slice()
+      .sort((a,b)=>String(b.billMonth||'').localeCompare(String(a.billMonth||'')))
+      .map(x=>`
+        <tr>
+          <td>${esc(x.billMonth||'—')}</td>
+          <td>${num(x.unitsUsed)}</td>
+          <td>${money(x.amount)}</td>
+          <td>${esc(x.dueDate||'—')}</td>
+          <td>${esc(x.paidDate||'—')}</td>
+          <td>${esc(x.status||'รอชำระ')}</td>
+        </tr>
+      `).join('')
     :'<tr><td colspan="6" class="empty">ยังไม่มีบิลค่าไฟ</td></tr>';
 
   const latest=readings
@@ -769,7 +853,7 @@ function renderAll(){
     .sort((a,b)=>getReadingDate(b).localeCompare(getReadingDate(a)))[0];
 
   $('statUnits').textContent=latest
-    ?num(getUnitsUsed(latest))+' หน่วย'
+    ?(getUnitsUsed(latest)===''?'—':num(getUnitsUsed(latest))+' หน่วย')
     :'0';
 
   $('statAmount').textContent=latest
@@ -807,7 +891,7 @@ function exportExcel(){
       getMeterValue(x),
       getUnitPrice(x),
       getUnitsUsed(x),
-      getReadingAmount(x),
+      getReadingAmount(x)??'',
       x.note||''
     ])
   ];
@@ -849,7 +933,7 @@ function toast(t){
 
   toastTimer=setTimeout(()=>{
     $('toast').classList.add('hidden');
-  },2600);
+  },3000);
 }
 
 async function logout(call=true){
