@@ -1849,11 +1849,18 @@ async function renderElectricity(){
     <div class="form-grid" style="margin:16px 0">
       <div class="field"><label>วันที่อ่านมิเตอร์ (ค.ศ.)</label><input id="elecDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="field"><label>เลขมิเตอร์สะสม</label><input id="elecMeter" type="number" min="0" step="0.01" placeholder="เลขตามหน้ามิเตอร์"></div>
+      <div class="field"><label>เลขมิเตอร์ครั้งก่อน (กรณีเริ่มบันทึกครั้งแรก)</label><input id="elecPreviousMeter" type="number" min="0" step="0.01" placeholder="เว้นว่างถ้ามีประวัติในระบบ"></div>
       <div class="field"><label>ราคาต่อหน่วย (บาท)</label><input id="elecRate" type="number" min="0" step="0.01" placeholder="เช่น 4.50"></div>
       <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="elecNote" placeholder="เช่น รอบบิล / ผู้จดมิเตอร์"></div>
     </div>
     <div id="elecPreview" style="padding:12px 15px;border-radius:12px;background:#f2f5ed;color:var(--green);margin-bottom:14px">กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก</div>
     <div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-primary" id="saveElecReadingBtn" onclick="saveElectricityReading()">บันทึกเลขมิเตอร์</button><button class="btn btn-light" onclick="exportElectricityExcel()">ส่งออก Excel</button></div>
+  </div>
+  <div class="panel" style="padding:18px;margin-top:16px">
+    <div class="form-grid">
+      <div style="padding:14px;border-radius:12px;background:#f2f5ed"><div style="font-size:13px;color:var(--muted)">รวมหน่วยไฟฟ้าที่ใช้</div><div id="elecTotalUnits" style="font-size:25px;font-weight:800;color:var(--green)">0 หน่วย</div></div>
+      <div style="padding:14px;border-radius:12px;background:#fff7e8"><div style="font-size:13px;color:var(--muted)">รวมค่าไฟจากมิเตอร์</div><div id="elecTotalAmount" style="font-size:25px;font-weight:800;color:#946c2f">0.00 บาท</div></div>
+    </div>
   </div>
   <div class="panel" style="padding:20px;margin-top:16px">
     <div class="section-head"><div><h2 style="margin:0;color:var(--green)">ประวัติการอ่านมิเตอร์</h2><p style="margin:5px 0;color:var(--muted)">จำนวนที่ใช้ = มิเตอร์ครั้งนี้ − มิเตอร์ครั้งก่อน</p></div></div>
@@ -1874,7 +1881,7 @@ async function renderElectricity(){
     if(!result.ok)throw new Error(result.error||'โหลดข้อมูลค่าไฟไม่สำเร็จ');
     electricityCache={readings:result.readings||[],bills:result.bills||[]};
     drawElectricityTables();
-    ['elecMeter','elecRate'].forEach(id=>document.getElementById(id).addEventListener('input',updateElectricityPreview));
+    ['elecMeter','elecPreviousMeter','elecRate'].forEach(id=>document.getElementById(id).addEventListener('input',updateElectricityPreview));
     document.getElementById('elecDate').addEventListener('change',updateElectricityPreview);
     updateElectricityPreview();
   }catch(err){notify(err.message,'error');}
@@ -1936,6 +1943,10 @@ function electricityAmount(reading, units){
 
 function drawElectricityTables(){
   const rows=electricityCache.readings||[];
+  let totalUnits=0,totalAmount=0,hasUnits=false,hasAmount=false;
+  rows.forEach(function(r){const u=electricityUnitsUsed(r,rows);const a=electricityAmount(r,u);if(u!==null){totalUnits+=u;hasUnits=true;}if(a!==null){totalAmount+=a;hasAmount=true;}});
+  const totalUnitsEl=document.getElementById('elecTotalUnits');if(totalUnitsEl)totalUnitsEl.textContent=(hasUnits?totalUnits.toLocaleString('th-TH',{maximumFractionDigits:2}):'0')+' หน่วย';
+  const totalAmountEl=document.getElementById('elecTotalAmount');if(totalAmountEl)totalAmountEl.textContent=(hasAmount?moneyTHB(totalAmount):'0.00')+' บาท';
   const body=document.getElementById('elecReadingRows');if(!body)return;
   body.innerHTML=rows.length?rows.map(function(r){
     const units=electricityUnitsUsed(r,rows);
@@ -1964,17 +1975,30 @@ function drawElectricityTables(){
   if(bills)bills.innerHTML=(electricityCache.bills||[]).map(b=>`<tr><td>${escapeHTML(b.billMonth||'-')}</td><td>${Number(b.unitsUsed||0).toLocaleString('th-TH')}</td><td>${moneyTHB(b.amount)}</td><td>${escapeHTML(b.status||'')}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:18px">ยังไม่มีบิลค่าไฟ</td></tr>';
 }
 function updateElectricityPreview(){
-  const meter=Number(document.getElementById('elecMeter')?.value),rate=Number(document.getElementById('elecRate')?.value);
-  const previous=(electricityCache.readings||[]).filter(r=>String(r.readingDate||'')<(document.getElementById('elecDate')?.value||'')).sort((a,b)=>String(b.readingDate||'').localeCompare(String(a.readingDate||'')))[0];
+  const meterInput=document.getElementById('elecMeter');
+  const previousInput=document.getElementById('elecPreviousMeter');
+  const rateInput=document.getElementById('elecRate');
+  const meter=Number(meterInput?.value),rate=Number(rateInput?.value);
+  const date=document.getElementById('elecDate')?.value||'';
+  const previous=(electricityCache.readings||[]).filter(r=>String(r.readingDate||'').slice(0,10)<=date)
+    .sort((a,b)=>String(b.readingDate||'').slice(0,10).localeCompare(String(a.readingDate||'').slice(0,10)))[0];
   const box=document.getElementById('elecPreview');if(!box)return;
-  if(!Number.isFinite(meter)||!document.getElementById('elecMeter').value||!Number.isFinite(rate)||!document.getElementById('elecRate').value){box.textContent='กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณเมื่อบันทึก';return;}
-  const used=previous?meter-Number(previous.meterValue||0):null;
-  box.textContent=previous?(used<0?'เลขมิเตอร์ต้องไม่น้อยกว่าครั้งก่อน':`ครั้งก่อน ${Number(previous.meterValue).toLocaleString('th-TH')} หน่วย | ใช้ไป ${used.toLocaleString('th-TH')} หน่วย | รวม ${moneyTHB(used*rate)} บาท`):'เป็นการบันทึกครั้งแรก ยังไม่มีเลขครั้งก่อนสำหรับคำนวณหน่วยที่ใช้';
+  if(!meterInput?.value||!rateInput?.value||!Number.isFinite(meter)||!Number.isFinite(rate)){
+    box.textContent='กรอกเลขมิเตอร์และราคาต่อหน่วย ระบบจะคำนวณหน่วยที่ใช้และค่าไฟก่อนบันทึก';return;
+  }
+  let previousMeter=null, label='';
+  if(previous){previousMeter=Number(previous.meterValue);label='เลขมิเตอร์ครั้งก่อนจากประวัติ';}
+  else if(previousInput?.value!==''){previousMeter=Number(previousInput.value);label='เลขมิเตอร์ครั้งก่อนที่กรอก';}
+  else {previousMeter=meter;label='มิเตอร์ตั้งต้น (ยังไม่มีประวัติเดิม)';}
+  if(!Number.isFinite(previousMeter)||previousMeter<0){box.textContent='เลขมิเตอร์ครั้งก่อนต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป';return;}
+  const used=meter-previousMeter;
+  if(used<0){box.textContent='เลขมิเตอร์ปัจจุบันต้องไม่น้อยกว่าเลขมิเตอร์ครั้งก่อน';return;}
+  box.textContent=`${label}: ${previousMeter.toLocaleString('th-TH')} | ใช้ไป ${used.toLocaleString('th-TH',{maximumFractionDigits:2})} หน่วย | รวม ${moneyTHB(used*rate)} บาท`;
 }
 async function saveElectricityReading(){
-  const reading={readingDate:document.getElementById('elecDate').value,meterValue:document.getElementById('elecMeter').value,unitPrice:document.getElementById('elecRate').value,note:document.getElementById('elecNote').value};
+  const reading={readingDate:document.getElementById('elecDate').value,meterValue:document.getElementById('elecMeter').value,previousReading:document.getElementById('elecPreviousMeter').value,unitPrice:document.getElementById('elecRate').value,note:document.getElementById('elecNote').value};
   const btn=document.getElementById('saveElecReadingBtn');btn.disabled=true;
-  try{const r=await api('saveElectricityReading',{reading});if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ');notify('บันทึกเลขมิเตอร์เรียบร้อยแล้ว');await renderElectricity();}
+  try{if(!reading.readingDate||reading.meterValue===''||reading.unitPrice==='')throw new Error('กรุณากรอกวันที่ เลขมิเตอร์ และราคาต่อหน่วยให้ครบ');const r=await api('saveElectricityReading',{reading});if(!r.ok)throw new Error(r.error||'บันทึกไม่สำเร็จ');notify('บันทึกเลขมิเตอร์ พร้อมหน่วยที่ใช้และค่าไฟลงฐานข้อมูลเรียบร้อยแล้ว');await renderElectricity();}
   catch(e){notify(e.message,'error');}finally{btn.disabled=false;}
 }
 async function saveElectricityBill(){
